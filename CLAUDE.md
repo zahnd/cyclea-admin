@@ -19,6 +19,24 @@ service on **Render** (Frankfurt), two **Supabase** projects (Zürich).
 The decision record for why this is a separate repo and a separate database is
 `cyclea-app/docs/admin-platform.md`.
 
+## Where things stand (2026-09-30)
+
+- **The architecture is proven, not assumed.** A deployed probe confirmed that
+  `admin_portal` reaches the app project through the pooler in session mode from
+  Render, and that reads of `cycles`, `daily_logs`, `daily_log_selections`,
+  `profiles` and `revenuecat_events` are all refused with `42501`. See
+  `docs/setup.md`.
+- **App-side schema is ready**: `cyclea-app` migrations 0056 (revenue columns +
+  the `creator_revenue_events` view), 0057 (what the values mean) and 0058 (the
+  RLS policy this role needs) are applied.
+- **`server.js`, `package.json` and `package-lock.json` are the temporary
+  probe.** Delete all three when scaffolding Next.js over them — deleting them
+  alone leaves the Render service with nothing to start.
+- **Next step**: `create-next-app` (TypeScript, Tailwind, App Router, npm), then
+  shadcn/ui and ReUI, then the first migration — the append-only audit log.
+- **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
+  open questions; all block the first payout, none blocks building.
+
 ## Commands
 
 No application code yet. The intended shape:
@@ -83,6 +101,11 @@ and rejected — see `docs/architecture.md`.
   a guess for either.**
 - Money columns are `numeric`, never a float.
 - **Never store bank details.** Reference a payee by its id in the bank or Wise.
+- **Creators see a running balance**, split into *Pending* and *Available* so
+  the number that gets paid stops moving before anyone is promised it. A
+  balance invites "show me the transactions" — **bucket by day at minimum**,
+  because a per-transaction list with timestamps is a correlation channel even
+  without `user_id`. `docs/payouts.md` has the reasoning.
 
 ## Privacy rules that are structural, not stylistic
 
