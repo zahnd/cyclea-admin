@@ -72,11 +72,25 @@ In the **app** project's SQL editor (`zekaahjqdynuhjmgkpqf`), not here. By hand
 rather than in a migration, because a migration cannot carry a password:
 
 ```sql
-CREATE ROLE admin_portal LOGIN PASSWORD '…';
+CREATE ROLE admin_portal LOGIN PASSWORD '…';   -- hex, not base64 — see below
 GRANT USAGE  ON SCHEMA public TO admin_portal;
 GRANT SELECT ON public.creator_revenue_events TO admin_portal;
 GRANT SELECT, INSERT, UPDATE (name, active, note) ON public.creators TO admin_portal;
 ```
+
+**A grant is only half of it.** `creators` has RLS enabled with no policies
+(0054, "service role only"), and `admin_portal` is a plain login role that does
+**not** bypass RLS the way the service role does. Migration **0058** adds the
+policy that lets it through.
+
+The half that bites is the read, not the write. An ungranted INSERT fails
+loudly with `42501`; an RLS-filtered SELECT returns **zero rows and no error**,
+which looks exactly like an empty table. A payout screen showing "no creators"
+is a plausible wrong answer, so this is worth knowing rather than discovering.
+
+**Order matters on a fresh database**: 0058 skips its policy with a notice when
+the role does not exist yet, since the role is created by hand. Create the role
+first, or re-run the policy statement afterwards.
 
 Keep that list exactly this short. When something new is needed, add **a view in
 the app project** and grant that, rather than widening the role to a base table.

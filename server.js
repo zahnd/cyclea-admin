@@ -27,9 +27,9 @@ const NO_TABLE = '42P01';     // undefined_table
 let summary = { state: 'running' };
 
 /** Runs one query; returns {ok, rows} or {ok:false, code, message}. */
-async function attempt(client, sql) {
+async function attempt(client, sql, params) {
   try {
-    const res = await client.query(sql);
+    const res = await client.query(sql, params);
     return { ok: true, rows: res.rows };
   } catch (e) {
     return { ok: false, code: e.code, message: e.message };
@@ -150,8 +150,49 @@ async function probe() {
     }
   };
 
+  /**
+   * RLS FILTERS; IT DOES NOT RAISE. A table with row-level security on and no
+   * policy covering this role returns zero rows from SELECT rather than
+   * "permission denied" -- so a read check passes while proving the opposite.
+   * That is exactly what happened on the first run of this probe against
+   * `creators`: it counted 0 on a table holding a row and was reported PASS.
+   *
+   * A grant is therefore only half the story, and this is the other half.
+   * Structural, so it stays true whether or not the table happens to be empty.
+   */
+  const visible = async (name, table) => {
+    const r = await attempt(
+      client,
+      `SELECT c.relrowsecurity AS rls_enabled,
+              EXISTS (
+                SELECT 1 FROM pg_policy p, unnest(p.polroles) AS r(oid)
+                WHERE p.polrelid = c.oid
+                  AND (r.oid = 0 OR pg_has_role(current_user, r.oid, 'USAGE'))
+              ) AS policy_covers_me
+       FROM pg_class c WHERE c.oid = to_regclass($1)`,
+      [table],
+    );
+    if (!r.ok) {
+      results.push({ name, expect: 'visible', pass: null, detail: `could not check: ${r.message}` });
+      return;
+    }
+    const { rls_enabled: rls, policy_covers_me: covered } = r.rows[0] || {};
+    if (!rls) {
+      results.push({ name, expect: 'visible', pass: true, detail: 'no RLS on this table' });
+    } else if (covered) {
+      results.push({ name, expect: 'visible', pass: true, detail: 'RLS on, a policy covers this role' });
+    } else {
+      results.push({
+        name, expect: 'visible', pass: false,
+        detail: 'RLS ON WITH NO POLICY FOR THIS ROLE — reads return zero rows ' +
+                'instead of an error, so every read check above is meaningless',
+      });
+    }
+  };
+
   await positive('identity',      'SELECT current_user, inet_server_addr()::text AS server_ip');
   await positive('read the view', 'SELECT count(*) AS rows FROM public.creator_revenue_events');
+  await visible('creators visible', 'public.creators');
   await positive('read creators', 'SELECT count(*) AS rows FROM public.creators');
 
   // The boundary. Each of these MUST be denied.
