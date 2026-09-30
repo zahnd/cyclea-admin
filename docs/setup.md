@@ -1,10 +1,31 @@
 # Setup
 
-## Verify this before building anything on it
+## Confirmed working (2026-09-30)
+
+**The `admin_portal` role reaches the app project from a deployed Render
+service**, through the pooler in session mode, and the boundary holds: reads of
+`cycles`, `daily_logs`, `daily_log_selections`, `profiles` and
+`revenuecat_events` are all refused with `42501`, while the payout view, the
+`creators` read and a rolled-back `creators` insert all succeed.
+
+That was the one assumption that could have forced a different shape, so the
+fallbacks below are recorded but **not needed**. The rest of this section is
+kept as the reasoning, and as the diagnosis if it ever breaks.
+
+Two findings worth carrying forward:
+
+- **A grant is only half of it.** `creators` has RLS on; a grant without a
+  policy gives a SELECT that returns zero rows and no error. See the role
+  section below.
+- **The password must be hex.** A base64 password breaks the connection URL
+  before a packet is sent, with a message that reads like a network failure.
+
+<details>
+<summary>The original reasoning, and what to do if this ever fails</summary>
 
 **Can the `admin_portal` role reach the app project from Render?** Everything
-here assumes yes, and it is the one assumption that could force a different
-shape, so test it with a throwaway script before writing application code.
+here assumed yes, and it was the one assumption that could force a different
+shape, so it was tested with a throwaway probe before any application code.
 
 Two things stack up:
 
@@ -26,6 +47,8 @@ If the pooler rejects the custom role, the fallbacks in order of preference are:
 a Supabase Edge Function in the app project that exposes the view over HTTP with
 a shared secret (keeps the boundary, costs a round trip), or the IPv4 add-on on
 the app project (simplest, costs money).
+
+</details>
 
 **Use port 5432 on the pooler host — session mode.** The two ports are
 different poolers, not a fallback pair:
