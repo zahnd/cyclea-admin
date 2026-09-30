@@ -27,10 +27,26 @@ a Supabase Edge Function in the app project that exposes the view over HTTP with
 a shared secret (keeps the boundary, costs a round trip), or the IPv4 add-on on
 the app project (simplest, costs money).
 
-One more pooler detail once it does work: **transaction mode (port 6543) does not
-support prepared statements.** With `postgres.js` that means `prepare: false`;
-with node-postgres and Drizzle it means avoiding prepared queries. Session mode
-(5432 on the pooler host) supports them but holds a connection per client.
+**Use port 5432 on the pooler host — session mode.** The two ports are
+different poolers, not a fallback pair:
+
+| port | mode | for |
+|---|---|---|
+| 5432 | session | a persistent server holding a pool — **this app** |
+| 6543 | transaction | serverless / edge, many short-lived connections |
+
+Transaction mode returns the connection to the pool after every transaction,
+which is why it cannot support named prepared statements, session-level `SET`
+or `LISTEN`. Render runs a long-lived Node process, so session mode fits and
+`pg` or Drizzle need no special configuration.
+
+The cost of session mode is that a server connection is held for as long as the
+client holds it, so **keep the pool small** — `max: 5` or fewer. One Render
+instance with a modest pool is well inside the project's connection limit.
+
+Both ports are on the pooler host and both are IPv4; only
+`db.<ref>.supabase.co` is IPv6-only. So the port choice does not affect the
+reachability question above.
 
 ## First time on a machine
 
