@@ -36,25 +36,92 @@ async function attempt(client, sql) {
   }
 }
 
+/**
+ * Explains a connection string without ever printing the password.
+ *
+ * `pg` parses the string inside the Client constructor, so a malformed one
+ * throws "Invalid URL" before a single packet is sent -- which reads like a
+ * network problem and is not one. The usual cause is an unencoded character in
+ * the password: `/` ends the userinfo and starts the path, and `@ ? # [ ]` are
+ * each structural too. A base64 password (openssl rand -base64) hits this
+ * roughly half the time, which is why hex is the safer generator.
+ */
+function diagnoseUrl(raw) {
+  const notes = [];
+  if (raw !== raw.trim()) notes.push('has leading/trailing whitespace');
+  if (/\s/.test(raw.trim())) notes.push('contains an internal space or newline');
+  if (!/^postgres(ql)?:\/\//.test(raw.trim())) notes.push('does not start with postgresql://');
+  if (/\[|\]/.test(raw)) notes.push('contains [ or ] -- a leftover [YOUR-PASSWORD] placeholder?');
+
+  // Isolate the userinfo without keeping it: everything between :// and the
+  // LAST @, which is the host separator even when the password contains one.
+  const afterScheme = raw.trim().replace(/^postgres(ql)?:\/\//, '');
+  const at = afterScheme.lastIndexOf('@');
+  if (at === -1) {
+    notes.push('has no @ separating credentials from host');
+  } else {
+    const userinfo = afterScheme.slice(0, at);
+    const colon = userinfo.indexOf(':');
+    const user = colon === -1 ? userinfo : userinfo.slice(0, colon);
+    const pass = colon === -1 ? '' : userinfo.slice(colon + 1);
+    notes.push(`username is "${user}"`);
+    if (!user.includes('.')) {
+      notes.push('username has no dot -- the pooler needs <role>.<project-ref>');
+    }
+    if (!pass) {
+      notes.push('password is empty');
+    } else {
+      const bad = [...new Set(pass.split('').filter((c) => '/?#[]@ '.includes(c)))];
+      notes.push(`password length ${pass.length}`);
+      if (bad.length) {
+        notes.push(
+          `password contains ${bad.map((c) => `"${c}"`).join(', ')} which must be ` +
+          'percent-encoded -- simplest fix is a hex password: openssl rand -hex 32',
+        );
+      }
+    }
+    notes.push(`host:port/db is "${afterScheme.slice(at + 1)}"`);
+  }
+  return notes;
+}
+
 async function probe() {
   const url = process.env.CYCLEA_APP_DATABASE_URL;
   if (!url) {
     return { pass: false, fatal: 'CYCLEA_APP_DATABASE_URL is not set' };
   }
 
-  const client = new Client({
-    connectionString: url,
-    // Test-only. The real app should verify against Supabase's CA rather than
-    // skipping verification; this is here so a cert problem cannot be confused
-    // with the reachability question the probe exists to answer.
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 15000,
-    query_timeout: 15000,
-  });
+  try {
+    // eslint-disable-next-line no-new
+    new URL(url.trim());
+  } catch {
+    for (const n of diagnoseUrl(url)) console.log(`[probe]   - ${n}`);
+    return { pass: false, fatal: 'CYCLEA_APP_DATABASE_URL is not a valid URL (see notes above)' };
+  }
+
+  let client;
+  try {
+    client = new Client({
+      connectionString: url,
+      // Test-only. The real app should verify against Supabase's CA rather than
+      // skipping verification; this is here so a cert problem cannot be
+      // confused with the reachability question the probe exists to answer.
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 15000,
+      query_timeout: 15000,
+    });
+  } catch (e) {
+    // pg parses the connection string HERE, not in connect().
+    for (const n of diagnoseUrl(url)) console.log(`[probe]   - ${n}`);
+    return { pass: false, fatal: `could not build a client [${e.message}]` };
+  }
 
   try {
     await client.connect();
   } catch (e) {
+    if (/invalid url/i.test(e.message)) {
+      for (const n of diagnoseUrl(url)) console.log(`[probe]   - ${n}`);
+    }
     // THE answer we are here for, when it fails: ENETUNREACH/ETIMEDOUT means
     // the host is unreachable from Render (IPv6), 28P01 means the role or
     // password is wrong, 'Tenant or user not found' means the pooler did not

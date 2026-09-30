@@ -83,11 +83,20 @@ the app project** and grant that, rather than widening the role to a base table.
 `docs/architecture.md` § *The credential boundary* explains why this is the whole
 design and not a formality.
 
-Generate the password with something that will not be retyped:
+Generate the password as **hex**, not base64:
 
 ```bash
-openssl rand -base64 32
+openssl rand -hex 32
 ```
+
+This is not fussiness. The password goes into a URL, and base64's alphabet
+includes `/`, `+` and `=` — a `/` ends the userinfo and starts the path, so
+`pg` rejects the whole string with `Invalid URL` before it sends a single
+packet. That reads exactly like a network problem and is not one. Hex has no
+character that needs encoding, and 64 hex characters is ample entropy.
+
+The same applies to the dashboard's `[YOUR-PASSWORD]` placeholder: the square
+brackets are structural in a URL and must not survive into the value.
 
 It goes in `.env.local` here and in Render's environment, and nowhere else.
 
