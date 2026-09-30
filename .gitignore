@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# Environment — NOTHING with a real secret is ever committed.
+# .env.example is the documented shape and IS committed.
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Test and coverage output
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Editors
+.idea/
+*.iml
+.vscode/*.code-workspace
+*.swp
+.history/
+
+# macOS
+.DS_Store
+
+# Dropbox — this repo lives inside a Dropbox folder, which writes these on any
+# two-machine edit. They are byte-identical copies that would otherwise be
+# committed as new files, so they are ignored rather than cleaned up by hand.
+*conflicted copy*
+*Conflicted Copy*
+.dropbox
+.dropbox.attr
