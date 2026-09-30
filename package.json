@@ -1,0 +1,15 @@
+{
+  "name": "cyclea-admin",
+  "private": true,
+  "description": "TEMPORARY connection probe. Replaced by the Next.js app.",
+  "scripts": {
+    "build": "echo 'probe: nothing to build'",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

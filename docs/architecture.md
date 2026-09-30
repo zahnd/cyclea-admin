@@ -27,9 +27,9 @@ This document is the part a person writing code in *this* repo has to obey.
 
 **Nothing this app holds may be able to read health data.** Not "our queries
 only touch the safe tables" — the credential itself must be incapable of it.
-Cyclea is a menstrual-cycle tracker; `tracking_logs` and
-`daily_log_selections` are the most sensitive rows in the company, and this app
-runs on a public web host.
+Cyclea is a menstrual-cycle tracker; `cycles`, `daily_logs`,
+`daily_log_selections` and `planner_entries` are the most sensitive rows in the
+company, and this app runs on a public web host.
 
 Three credentials, and the second one is the whole design:
 

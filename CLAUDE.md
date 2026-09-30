@@ -35,9 +35,9 @@ supabase db push                     # apply migrations — check what is linked
 ## The rule that overrides convenience
 
 **Nothing this app holds may be able to read health data.** Cyclea tracks
-menstrual cycles; `tracking_logs` and `daily_log_selections` in the app project
-are the most sensitive rows in the company, and this app runs on a public web
-host.
+menstrual cycles; `cycles`, `daily_logs`, `daily_log_selections` and
+`planner_entries` in the app project are the most sensitive rows in the company,
+and this app runs on a public web host.
 
 - A **service-role key for the app project must never exist** in this repo, in
   Render's environment, or in anyone's `.env`. If a task seems to need one, the
