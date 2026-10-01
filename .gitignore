@@ -12,6 +12,9 @@ dist/
 next-env.d.ts
 *.tsbuildinfo
 
+# Certificates and keys
+*.pem
+
 # Environment — NOTHING with a real secret is ever committed.
 # .env.example is the documented shape and IS committed.
 .env

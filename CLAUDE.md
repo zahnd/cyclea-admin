@@ -6,6 +6,11 @@ code in this repository.
 **Read `docs/architecture.md` before writing code here.** It holds the rules
 below in full, with the reasoning. This file is the short form.
 
+This is Next.js 16, which differs from older versions in ways that matter —
+check the bundled docs before writing Next.js code:
+
+@AGENTS.md
+
 ## What this is
 
 The admin platform for Cyclea (the Flutter app, in the sibling repo
@@ -29,23 +34,21 @@ The decision record for why this is a separate repo and a separate database is
 - **App-side schema is ready**: `cyclea-app` migrations 0056 (revenue columns +
   the `creator_revenue_events` view), 0057 (what the values mean) and 0058 (the
   RLS policy this role needs) are applied.
-- **`server.js`, `package.json` and `package-lock.json` are the temporary
-  probe.** Delete all three when scaffolding Next.js over them — deleting them
-  alone leaves the Render service with nothing to start.
-- **Next step**: `create-next-app` (TypeScript, Tailwind, App Router, npm), then
-  shadcn/ui and ReUI, then the first migration — the append-only audit log.
+- **Next.js 16 is scaffolded** (TypeScript, Tailwind v4, App Router, npm, no
+  `src/`), replacing the probe. The root page is a placeholder; there are no
+  routes, clients or auth yet.
+- **Next step**: shadcn/ui and ReUI, then the first migration — the append-only
+  audit log.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
 ## Commands
 
-No application code yet. The intended shape:
-
 ```bash
 npm run dev                          # Next.js dev server
 npm run build                        # production build
 npm run lint
-npm run typecheck
+npm run typecheck                    # next typegen && tsc --noEmit
 supabase link --project-ref mtcnwjpjbupsbkbhqbph   # the ADMIN project
 supabase db push                     # apply migrations — check what is linked first
 ```

@@ -154,13 +154,22 @@ One web service, **Frankfurt** region. The app is stateless — Supabase holds t
 data, the auth and the storage — so the service holds nothing at rest, and the
 region choice is about the round trip to Zürich rather than about residency.
 
+| setting | value |
+|---|---|
+| build command | `npm ci && npm run build` |
+| start command | `npm start` |
+
+`next start` reads `PORT` from Render and binds `0.0.0.0`, so neither needs
+setting. The build command matters: the probe's `build` script was a no-op, and
+`next start` without a prior `next build` exits at boot.
+
 Environment variables are the four above. Render is a **named subprocessor** in
 the privacy policy even holding no data at rest, because it processes it in
 transit.
 
 ## What is not set up yet
 
-- No application code. The stack is Next.js (App Router) + shadcn/ui + ReUI.
+- No application code beyond the Next.js scaffold. shadcn/ui and ReUI are next.
 - No migrations. The first one should create the audit log
   (`docs/architecture.md` § *The audit log is not optional*).
 - No auth. Admins and creators both live in the admin project's `auth.users`,
