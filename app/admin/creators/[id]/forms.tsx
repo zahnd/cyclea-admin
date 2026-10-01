@@ -7,7 +7,18 @@ import { StepUpField } from "@/components/step-up-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_STATUSES,
+  isContractStatus,
+  isPayoutMethod,
+  PAYOUT_METHOD_LABELS,
+  PAYOUT_METHODS,
+  type ContractStatus,
+  type PayoutMethod,
+} from "@/lib/creators/validation";
 
 import {
   adoptCreator,
@@ -15,6 +26,7 @@ import {
   removeCreatorLogin,
   renameCreator,
   setCreatorActive,
+  updateCreatorContract,
   updateCreatorRecord,
   type FormState,
 } from "../actions";
@@ -76,30 +88,54 @@ export function AdoptForm({ id }: { id: string }) {
   );
 }
 
+const PAYOUT_METHOD_ITEMS = [
+  { value: "", label: "Not set" },
+  ...PAYOUT_METHODS.map((value) => ({ value, label: PAYOUT_METHOD_LABELS[value] })),
+];
+
+const PAYEE_HINTS: Record<PayoutMethod | "", string> = {
+  "": "Choose the payout method first; the reference says where to find the payee there.",
+  bank: "The payee's name in your e-banking.",
+  wise: "The Wise recipient id.",
+};
+
 export function RecordForm({
   id,
-  contractSignedOn,
+  payoutMethod,
   payeeReference,
   internalNote,
 }: {
   id: string;
-  contractSignedOn: string | null;
+  payoutMethod: PayoutMethod | null;
   payeeReference: string | null;
   internalNote: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateCreatorRecord, {});
+  const [method, setMethod] = useState<PayoutMethod | "">(payoutMethod ?? "");
   return (
     <form action={action} className="flex flex-col gap-5">
       <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="payout_method" value={method} />
       <div className="flex flex-col gap-2">
-        <Label htmlFor="contract_signed_on">Contract signed on</Label>
-        <Input
-          id="contract_signed_on"
-          name="contract_signed_on"
-          type="date"
-          defaultValue={contractSignedOn ?? ""}
-          className="w-48"
-        />
+        <Label htmlFor="payout_method">Payout method</Label>
+        <Select
+          items={PAYOUT_METHOD_ITEMS}
+          value={method}
+          onValueChange={(value) => setMethod(value && isPayoutMethod(value) ? value : "")}
+        >
+          <SelectTrigger id="payout_method" className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {PAYOUT_METHOD_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="payee_reference">Payee reference</Label>
@@ -112,8 +148,8 @@ export function RecordForm({
           spellCheck={false}
         />
         <p className="text-xs text-muted-foreground">
-          The Wise recipient id or the bank&apos;s payee reference. Never an IBAN or account number — those stay in
-          Wise or the bank.
+          {PAYEE_HINTS[method]} Never an IBAN or account number — those stay in the bank or Wise, and come from the
+          signed contract.
         </p>
       </div>
       <div className="flex flex-col gap-2">
@@ -125,6 +161,112 @@ export function RecordForm({
       <div>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save record"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+const CONTRACT_STATUS_ITEMS = CONTRACT_STATUSES.map((value) => ({ value, label: CONTRACT_STATUS_LABELS[value] }));
+
+export function ContractForm({
+  id,
+  status: savedStatus,
+  signedOn,
+  endedOn,
+  url,
+}: {
+  id: string;
+  status: ContractStatus;
+  signedOn: string | null;
+  endedOn: string | null;
+  url: string | null;
+}) {
+  const [state, action, pending] = useActionState<FormState, FormData>(updateCreatorContract, {});
+  const [status, setStatus] = useState<ContractStatus>(savedStatus);
+  const needsSigned = status === "signed" || status === "ended";
+  return (
+    <form action={action} className="flex flex-col gap-5">
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="contract_status" value={status} />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="contract_status">State</Label>
+        <Select
+          items={CONTRACT_STATUS_ITEMS}
+          value={status}
+          onValueChange={(value) => value && isContractStatus(value) && setStatus(value)}
+        >
+          <SelectTrigger id="contract_status" className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {CONTRACT_STATUS_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          A declined or withdrawn request goes back to No contract; the audit log keeps the history.
+        </p>
+      </div>
+      {needsSigned && (
+        <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="contract_signed_on">Signed on</Label>
+            <Input
+              id="contract_signed_on"
+              name="contract_signed_on"
+              type="date"
+              required
+              defaultValue={signedOn ?? ""}
+              className="w-48"
+            />
+          </div>
+          {status === "ended" && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="contract_ended_on">Ended on</Label>
+              <Input
+                id="contract_ended_on"
+                name="contract_ended_on"
+                type="date"
+                required
+                defaultValue={endedOn ?? ""}
+                className="w-48"
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {status === "ended" && (
+        <p className="text-xs text-muted-foreground">
+          Ending the contract does not deactivate the code — use Deactivate above if new users should no longer
+          claim it.
+        </p>
+      )}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="contract_url">Skribble link</Label>
+        <Input
+          id="contract_url"
+          name="contract_url"
+          type="url"
+          defaultValue={url ?? ""}
+          maxLength={500}
+          placeholder="https://my.skribble.com/…"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <p className="text-xs text-muted-foreground">
+          Only a Skribble link — never a file share. The contract and the bank details in it stay in Skribble.
+        </p>
+      </div>
+      <FormMessage state={state} />
+      <div>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save contract"}
         </Button>
       </div>
     </form>

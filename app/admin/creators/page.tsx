@@ -10,7 +10,7 @@ export default async function CreatorsPage() {
   // Each side read separately and joined here: Postgres cannot join across
   // the two projects.
   const [creators, records] = await Promise.all([listAppCreators(), listCreatorRecords()]);
-  const recorded = new Set(records.map((record) => record.id));
+  const recorded = new Map(records.map((record) => [record.id, record]));
 
   const rows: CreatorRow[] = creators.map((creator) => ({
     id: creator.id,
@@ -19,6 +19,7 @@ export default async function CreatorsPage() {
     active: creator.active,
     createdAt: creator.createdAt,
     hasRecord: recorded.has(creator.id),
+    contractStatus: recorded.get(creator.id)?.contractStatus ?? null,
   }));
 
   return (

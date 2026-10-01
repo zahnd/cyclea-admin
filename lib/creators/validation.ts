@@ -42,3 +42,39 @@ export function isIsoDate(value: string): boolean {
 export function looksLikeIban(value: string): boolean {
   return /^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$/.test(value.replace(/\s/g, "").toUpperCase());
 }
+
+/** Contract states, in order (migration 0007). The contract itself is in Skribble. */
+export const CONTRACT_STATUSES = ["none", "sent", "signed", "ended"] as const;
+export type ContractStatus = (typeof CONTRACT_STATUSES)[number];
+
+export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
+  none: "No contract",
+  sent: "Sent for signature",
+  signed: "Signed",
+  ended: "Ended",
+};
+
+export function isContractStatus(value: string): value is ContractStatus {
+  return (CONTRACT_STATUSES as readonly string[]).includes(value);
+}
+
+/**
+ * Mirrors creators_contract_url_check (0007): a Skribble link only. A file
+ * share could carry the PDF -- bank details included -- to anyone holding it.
+ */
+export function isSkribbleUrl(value: string): boolean {
+  return value.length <= 500 && /^https:\/\/my\.skribble\.(com|de)\/\S+$/.test(value);
+}
+
+/** The ways we can pay today (0007). A label only; the payee lives in that service. */
+export const PAYOUT_METHODS = ["bank", "wise"] as const;
+export type PayoutMethod = (typeof PAYOUT_METHODS)[number];
+
+export const PAYOUT_METHOD_LABELS: Record<PayoutMethod, string> = {
+  bank: "Bank transfer",
+  wise: "Wise",
+};
+
+export function isPayoutMethod(value: string): value is PayoutMethod {
+  return (PAYOUT_METHODS as readonly string[]).includes(value);
+}

@@ -10,7 +10,10 @@ import { requireRecentTotp } from "@/lib/auth/step-up";
 import { getAppCreator } from "@/lib/creators/data";
 import {
   codeError,
+  isContractStatus,
   isIsoDate,
+  isPayoutMethod,
+  isSkribbleUrl,
   isUuid,
   looksLikeIban,
   nameError,
@@ -200,11 +203,11 @@ export async function updateCreatorRecord(_prev: FormState, formData: FormData):
   const { actor: who } = await actor();
   const id = idFrom(formData);
 
-  const contract = String(formData.get("contract_signed_on") ?? "").trim();
+  const method = String(formData.get("payout_method") ?? "").trim();
   const payee = String(formData.get("payee_reference") ?? "").trim();
   const note = String(formData.get("internal_note") ?? "").trim();
 
-  if (contract && !isIsoDate(contract)) return { error: "Enter the contract date as a date." };
+  if (method && !isPayoutMethod(method)) return { error: "Choose a payout method from the list." };
   if (payee.length > 100) return { error: "The payee reference is limited to 100 characters." };
   if (payee && looksLikeIban(payee)) {
     return { error: "That looks like an IBAN. Store the Wise recipient id or the bank's payee reference instead — never account details." };
@@ -213,7 +216,7 @@ export async function updateCreatorRecord(_prev: FormState, formData: FormData):
 
   const { data: changed, error } = await adminDb().rpc("update_creator_record", {
     p_id: id,
-    p_contract_signed_on: contract || null,
+    p_payout_method: method,
     p_payee_reference: payee,
     p_internal_note: note,
     ...who,
@@ -223,6 +226,47 @@ export async function updateCreatorRecord(_prev: FormState, formData: FormData):
     return { error: "Could not save the record. Nothing was changed." };
   }
   revalidatePath(`/admin/creators/${id}`);
+  return { ok: changed ? "Saved." : "No change." };
+}
+
+/**
+ * The contract's state and its Skribble link (migration 0007). Business
+ * fields like the record, so no step-up. Only the dates the state needs are
+ * sent: a date left in a hidden input must not fail the database's CHECK.
+ */
+export async function updateCreatorContract(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { actor: who } = await actor();
+  const id = idFrom(formData);
+
+  const status = String(formData.get("contract_status") ?? "");
+  const signedOn = String(formData.get("contract_signed_on") ?? "").trim();
+  const endedOn = String(formData.get("contract_ended_on") ?? "").trim();
+  const url = String(formData.get("contract_url") ?? "").trim();
+
+  if (!isContractStatus(status)) return { error: "Choose a contract state from the list." };
+  const needsSigned = status === "signed" || status === "ended";
+  const needsEnded = status === "ended";
+  if (needsSigned && !isIsoDate(signedOn)) return { error: "Enter the date the contract was signed." };
+  if (needsEnded && !isIsoDate(endedOn)) return { error: "Enter the date the contract ended." };
+  if (needsEnded && endedOn < signedOn) return { error: "The contract cannot end before it was signed." };
+  if (url && !isSkribbleUrl(url)) {
+    return { error: "Paste the contract's Skribble link (https://my.skribble.com/…). Never a file share — the contract stays in Skribble." };
+  }
+
+  const { data: changed, error } = await adminDb().rpc("update_creator_contract", {
+    p_id: id,
+    p_status: status,
+    p_signed_on: needsSigned ? signedOn : null,
+    p_ended_on: needsEnded ? endedOn : null,
+    p_url: url,
+    ...who,
+  });
+  if (error) {
+    console.error(`[creators] update contract ${id} failed: ${error.message}`);
+    return { error: "Could not save the contract. Nothing was changed." };
+  }
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
   return { ok: changed ? "Saved." : "No change." };
 }
 

@@ -15,6 +15,7 @@ import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
 import { Frame, FrameFooter, FrameHeader, FramePanel, FrameTitle } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUSES, type ContractStatus } from "@/lib/creators/validation";
 import { formatDateShort } from "@/lib/format";
 
 export type CreatorRow = {
@@ -24,7 +25,20 @@ export type CreatorRow = {
   active: boolean;
   createdAt: string;
   hasRecord: boolean;
+  /** Null without an admin record. */
+  contractStatus: ContractStatus | null;
 };
+
+const CONTRACT_BADGE_VARIANTS = {
+  none: "secondary",
+  sent: "info-outline",
+  signed: "success-outline",
+  ended: "secondary",
+} as const;
+
+export function ContractBadge({ status }: { status: ContractStatus }) {
+  return <Badge variant={CONTRACT_BADGE_VARIANTS[status]}>{CONTRACT_STATUS_LABELS[status]}</Badge>;
+}
 
 export function CreatorsGrid({ rows }: { rows: CreatorRow[] }) {
   const router = useRouter();
@@ -80,6 +94,19 @@ export function CreatorsGrid({ rows }: { rows: CreatorRow[] }) {
           </div>
         ),
         size: 220,
+      },
+      {
+        // Sorted in the contract's own order, not alphabetically.
+        accessorFn: (row) => (row.contractStatus ? CONTRACT_STATUSES.indexOf(row.contractStatus) : -1),
+        id: "contract",
+        header: ({ column }) => <DataGridColumnHeader title="Contract" column={column} />,
+        cell: ({ row }) =>
+          row.original.contractStatus ? (
+            <ContractBadge status={row.original.contractStatus} />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+        size: 180,
       },
       {
         accessorKey: "createdAt",

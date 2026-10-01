@@ -74,6 +74,11 @@ The decision record for why this is a separate repo and a separate database is
   create, 17 invite; the session was aal1 with no factors), then fully removed
   (18 remove login, 19 account delete, 20 creator record delete; the app-side
   row by hand). Render is in the app privacy policy.
+- **Contracts and payout method** (migration 0007): each creator's contract
+  state (No contract / Sent / Signed / Ended, with dates) and a link to it in
+  **Skribble**, where the contract and the bank details in it stay; payout
+  method Bank or Wise. Manual, audited. `docs/payouts.md` § *Contracts and
+  payee details*. Built, **not live** until 0007 is applied.
 - **Next step**: not chosen yet. Candidates: a revenue overview once production
   purchases exist, CI for lint/typecheck/build and the Docker migration tests,
   and payouts once `docs/payouts.md` is answered.

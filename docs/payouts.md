@@ -79,6 +79,39 @@ deliberately small pool, so cache per creator with a short TTL (a minute is
 plenty — this is money that moves daily, not by the second) rather than letting
 page views map one-to-one onto database round trips.
 
+## Contracts and payee details
+
+Decided 2026-10-01. **Bank details never enter this system** — not in a form,
+not in the portal, not in a webhook. The path is:
+
+1. The contract is signed in **Skribble** (Zürich, hosted in Switzerland; free
+   plan, by hand — no API, which is Pro only). The creator writes their bank
+   details into the contract.
+2. An admin copies them **by hand** into the e-banking or Wise as a payee.
+3. The admin app records only *that* it exists: the **payout method** (`bank` or
+   `wise` — the only two we can pay through; no Revolut or PayPal business
+   account), the **payee reference** (the payee's name in the e-banking, or the
+   Wise recipient id), and the **contract's state** with a link to it in
+   Skribble (migration 0007).
+
+**A change of bank details is confirmed by phone**, on a number we already had,
+before the payee is changed in the bank. "I've changed banks, please pay to this
+IBAN" from a hacked or look-alike address is the classic payout fraud. A changed
+payee reference also lands in the audit log, old and new.
+
+**The contract link may only point at Skribble** (`my.skribble.com` / `.de`,
+enforced by a CHECK). A Skribble link carries a document id and needs the
+Skribble login; a Dropbox or Drive share link could hand the PDF, bank details
+included, to anyone holding it.
+
+**No payout without a signed contract** — the rule the payout run must enforce
+when it is built. Portal access is deliberately not gated on it: the portal
+shows the creator's own aggregates only.
+
+If the contracts are ever automated through Skribble's API, the key on Render
+can read the signed contracts. Use it only to send a request and learn that it
+was signed — the same narrowing as `admin_portal` on the app project.
+
 ## Still open
 
 All four block the first payout, none blocks building the app:

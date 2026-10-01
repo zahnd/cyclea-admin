@@ -1,3 +1,4 @@
+import { ExternalLinkIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
@@ -9,8 +10,8 @@ import { getAppCreator, getCreatorLogin, getCreatorRecord } from "@/lib/creators
 import { isUuid } from "@/lib/creators/validation";
 import { formatDateLong } from "@/lib/format";
 
-import { ActiveForm, AdoptForm, InviteLoginForm, RecordForm, RemoveLoginForm, RenameForm } from "./forms";
-
+import { ContractBadge } from "../creators-grid";
+import { ActiveForm, AdoptForm, ContractForm, InviteLoginForm, RecordForm, RemoveLoginForm, RenameForm } from "./forms";
 
 export default async function CreatorPage({ params }: PageProps<"/admin/creators/[id]">) {
   await requireAdmin();
@@ -66,7 +67,7 @@ export default async function CreatorPage({ params }: PageProps<"/admin/creators
           {record ? (
             <RecordForm
               id={creator.id}
-              contractSignedOn={record.contractSignedOn}
+              payoutMethod={record.payoutMethod}
               payeeReference={record.payeeReference}
               internalNote={record.internalNote}
             />
@@ -78,10 +79,64 @@ export default async function CreatorPage({ params }: PageProps<"/admin/creators
 
       <Frame>
         <FrameHeader>
+          <FrameTitle>Contract</FrameTitle>
+          <FrameDescription>
+            Signed in Skribble. The contract and the bank details in it stay there; this is only its state.
+          </FrameDescription>
+        </FrameHeader>
+        <FramePanel className="flex flex-col gap-6">
+          {!record ? (
+            <p className="text-sm text-muted-foreground">Add the business record first; the contract is part of it.</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+                <ContractBadge status={record.contractStatus} />
+                {record.contractSignedOn && (
+                  <span className="text-muted-foreground">Signed {formatDateLong(record.contractSignedOn)}</span>
+                )}
+                {record.contractEndedOn && (
+                  <span className="text-muted-foreground">· ended {formatDateLong(record.contractEndedOn)}</span>
+                )}
+                {record.contractUrl && (
+                  <a
+                    href={record.contractUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-4"
+                  >
+                    Open in Skribble
+                    <ExternalLinkIcon className="size-3.5" aria-hidden />
+                  </a>
+                )}
+              </div>
+              <ContractForm
+                id={creator.id}
+                status={record.contractStatus}
+                signedOn={record.contractSignedOn}
+                endedOn={record.contractEndedOn}
+                url={record.contractUrl}
+              />
+            </>
+          )}
+        </FramePanel>
+      </Frame>
+
+      <Frame>
+        <FrameHeader>
           <FrameTitle>Portal access</FrameTitle>
           <FrameDescription>Every change here needs a current code from your own authenticator.</FrameDescription>
         </FrameHeader>
-        <FramePanel>
+        <FramePanel className="flex flex-col gap-4">
+          {record && (record.contractStatus === "none" || record.contractStatus === "sent") && (
+            <p className="text-sm text-muted-foreground">
+              The contract is not signed yet. Inviting still works; payouts will need a signed contract.
+            </p>
+          )}
+          {record?.contractStatus === "ended" && login && (
+            <p className="text-sm text-muted-foreground">
+              The contract has ended. Remove portal access if they should no longer sign in.
+            </p>
+          )}
           {!record ? (
             <p className="text-sm text-muted-foreground">Add the business record first; portal access needs it.</p>
           ) : login ? (

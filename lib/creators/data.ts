@@ -3,6 +3,8 @@ import "server-only";
 import { adminDb } from "@/lib/db/admin";
 import { appDbAsAdminPortal } from "@/lib/db/app";
 
+import type { ContractStatus, PayoutMethod } from "./validation";
+
 // A creator is one uuid in two databases (docs/architecture.md § Creator
 // identity spans both projects). These read each side separately; joining
 // happens here, in the server, because Postgres cannot join across projects.
@@ -20,7 +22,12 @@ export type AppCreator = {
 export type CreatorRecord = {
   id: string;
   createdAt: string;
+  contractStatus: ContractStatus;
   contractSignedOn: string | null;
+  contractEndedOn: string | null;
+  /** A Skribble link (0007); the contract itself never leaves Skribble. */
+  contractUrl: string | null;
+  payoutMethod: PayoutMethod | null;
   payeeReference: string | null;
   internalNote: string | null;
 };
@@ -63,18 +70,27 @@ export async function getAppCreator(id: string): Promise<AppCreator | null> {
 type RecordRow = {
   id: string;
   created_at: string;
+  contract_status: ContractStatus;
   contract_signed_on: string | null;
+  contract_ended_on: string | null;
+  contract_url: string | null;
+  payout_method: PayoutMethod | null;
   payee_reference: string | null;
   internal_note: string | null;
 };
 
-const RECORD_COLUMNS = "id, created_at, contract_signed_on, payee_reference, internal_note";
+const RECORD_COLUMNS =
+  "id, created_at, contract_status, contract_signed_on, contract_ended_on, contract_url, payout_method, payee_reference, internal_note";
 
 function toRecord(row: RecordRow): CreatorRecord {
   return {
     id: row.id,
     createdAt: row.created_at,
+    contractStatus: row.contract_status,
     contractSignedOn: row.contract_signed_on,
+    contractEndedOn: row.contract_ended_on,
+    contractUrl: row.contract_url,
+    payoutMethod: row.payout_method,
     payeeReference: row.payee_reference,
     internalNote: row.internal_note,
   };
