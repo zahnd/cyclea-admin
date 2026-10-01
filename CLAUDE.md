@@ -56,9 +56,12 @@ The decision record for why this is a separate repo and a separate database is
   changes need a TOTP code from the last 5 minutes. Verified in production with
   `stefan+admintest@cyclea.app` (audit 12 grant, 13 revoke); that account stays
   without access, by decision.
-- **Next step**: not yet chosen. Payouts stay blocked by `docs/payouts.md`; a
-  referral-count view (app-side migration, then Render in the privacy policy)
-  is the unblocked candidate.
+- **Users** (`/admin/users`) replaces the Admins section: every login in this
+  project with its role (Admin, later Creator, else No access); make admin,
+  revoke, reset authenticator, and **delete accounts without a role**
+  (migration 0005). Top bar: Creators · Users · Audit log; old `/admin/admins`
+  URLs redirect. Built, **not live** until 0005 is applied.
+- **Next step**: apply 0005, deploy, delete `stefan+admintest` through the UI.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -95,8 +98,11 @@ and this app runs on a public web host.
   key), `adminDbAsUser()` (the signed-in user's session), `appDbAsAdminPortal()`
   (the app project as `admin_portal` — not "read-only": it writes `creators`) —
   never `supabase` and `supabase2`.
-- **Step-up for admin-rights actions**: grant, revoke and reset-authenticator
-  also call `requireRecentTotp()` (`lib/auth/step-up.ts`) — a TOTP code from the
+- **Roles are derived, one table each**: Admin = `public.admins`; creator
+  portal logins will add a creator link. **`delete_account()` (0005) must learn
+  every new role**, or that role's accounts become deletable as "no access".
+- **Step-up for role and account actions**: grant, revoke, reset-authenticator
+  and delete also call `requireRecentTotp()` (`lib/auth/step-up.ts`) — a TOTP code from the
   last 5 minutes, asked for inline (`StepUpField`) when older.
 - **Every admin page and server action calls `requireAdmin()`**
   (`lib/auth/dal.ts`). The proxy only refreshes sessions and redirects early;

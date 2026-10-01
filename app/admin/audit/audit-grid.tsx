@@ -23,7 +23,7 @@ export type AuditGridRow = {
   targetType: string;
   targetId: string;
   details: Record<string, unknown>;
-  /** Whether the target still has a page; a removed creator or revoked admin has none. */
+  /** Whether the target still has a page; a deleted account or removed creator has none. */
   targetHasPage: boolean;
 };
 
@@ -45,7 +45,8 @@ function targetLabel(row: AuditGridRow, names: Map<string, string>): string {
 function targetHref(row: AuditGridRow): string | null {
   if (!row.targetHasPage) return null;
   if (row.targetType === "creator") return `/admin/creators/${row.targetId}`;
-  if (row.targetType === "admin") return `/admin/admins/${row.targetId}`;
+  // Admin actions and account deletion both target a login.
+  if (row.targetType === "admin" || row.targetType === "user") return `/admin/users/${row.targetId}`;
   return null;
 }
 

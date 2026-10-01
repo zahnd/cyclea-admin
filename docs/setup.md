@@ -98,11 +98,13 @@ Email code, then an authenticator app (TOTP) — mandatory, and asked again afte
 12 hours (`TOTP_FRESH_FOR_SECONDS` in `lib/auth/dal.ts`). No passwords, no magic
 links. Signup is off: an account exists only if a script created it.
 
-**Managing admins** happens in the panel (`/admin/admins`): add, revoke,
-reset another admin's authenticator, and the audit log. Each change of admin
-rights asks for a fresh authenticator code (from the last 5 minutes). The
-database refuses to revoke yourself or the last admin, so the panel cannot lock
-everyone out.
+**Accounts are managed in the panel** under *Users* (`/admin/users`): every
+login with its role, add an admin, make admin / revoke, reset another admin's
+authenticator, and delete accounts that have no role. Each of these asks for a
+fresh authenticator code (from the last 5 minutes). The database refuses to
+revoke yourself or the last admin, and to delete an account that still has a
+role, so the panel cannot lock everyone out or delete someone's access by the
+back door. The audit log has its own section.
 
 **`scripts/admin.ts` is the break-glass path** — the first admin, or your own
 authenticator when no other admin can reset it. From a machine with

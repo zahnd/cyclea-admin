@@ -119,6 +119,13 @@ synchronously by `claim_creator_code`, so a code has to work the instant it
 exists. Any design where the app learns about creators through a sync has a
 window where a creator hands out a code that returns `invalid`.
 
+**Creator logins are separate from creators.** Creating a creator does not
+create an account. When the portal exists, a creator gets a login in *this*
+project's `auth.users` through an invite from the creator's page, linked to the
+creator id. That link is a role, like `public.admins`: it shows the account as
+"Creator" in Users, and `delete_account()` (migration 0005) must be extended to
+refuse accounts that have it.
+
 This project owns the creator's *business* record — rate, contract terms, payee
 reference, portal login, notes — keyed by **the same uuid**. Creating a creator
 is therefore one action writing two rows: the app project's `creators` row

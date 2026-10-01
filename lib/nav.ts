@@ -52,28 +52,35 @@ export const sections: NavSection[] = [
     ],
   },
   {
-    title: "Admins",
-    href: "/admin/admins",
+    title: "Users",
+    href: "/admin/users",
     icon: ShieldIcon,
     pages: [
       {
-        title: "All admins",
-        href: "/admin/admins",
+        title: "All users",
+        href: "/admin/users",
         icon: ListIcon,
-        match: (p) =>
-          under("/admin/admins")(p) && !under("/admin/admins/new")(p) && !under("/admin/admins/audit")(p),
+        // A user's own page belongs here too; only /new is its own page.
+        match: (p) => under("/admin/users")(p) && !under("/admin/users/new")(p),
       },
       {
         title: "Add admin",
-        href: "/admin/admins/new",
+        href: "/admin/users/new",
         icon: UserPlusIcon,
-        match: under("/admin/admins/new"),
+        match: under("/admin/users/new"),
       },
+    ],
+  },
+  {
+    title: "Audit log",
+    href: "/admin/audit",
+    icon: ScrollTextIcon,
+    pages: [
       {
-        title: "Audit log",
-        href: "/admin/admins/audit",
-        icon: ScrollTextIcon,
-        match: under("/admin/admins/audit"),
+        title: "All entries",
+        href: "/admin/audit",
+        icon: ListIcon,
+        match: under("/admin/audit"),
       },
     ],
   },

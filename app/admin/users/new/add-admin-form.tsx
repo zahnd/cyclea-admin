@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { addAdmin, type AdminFormState } from "../actions";
+import { addAdmin, type UserFormState } from "../actions";
 
 export function AddAdminForm() {
-  const [state, action, pending] = useActionState<AdminFormState, FormData>(addAdmin, {});
+  const [state, action, pending] = useActionState<UserFormState, FormData>(addAdmin, {});
   // Controlled: React resets a form after its action, and the email must
   // survive the round trip that asks for an authenticator code.
   const [email, setEmail] = useState("");
@@ -38,7 +38,7 @@ export function AddAdminForm() {
         <Button type="submit" disabled={pending}>
           {pending ? "Adding…" : "Add admin"}
         </Button>
-        <Button variant="ghost" nativeButton={false} render={<Link href="/admin/admins" />}>
+        <Button variant="ghost" nativeButton={false} render={<Link href="/admin/users" />}>
           Cancel
         </Button>
       </div>
