@@ -111,7 +111,11 @@ export function RecordForm({
   internalNote: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateCreatorRecord, {});
+  // Controlled, all of them: React resets a form after its action, and a
+  // refused save (an IBAN as payee) must not wipe what was typed.
   const [method, setMethod] = useState<PayoutMethod | "">(payoutMethod ?? "");
+  const [payee, setPayee] = useState(payeeReference ?? "");
+  const [note, setNote] = useState(internalNote ?? "");
   return (
     <form action={action} className="flex flex-col gap-5">
       <input type="hidden" name="id" value={id} />
@@ -142,7 +146,8 @@ export function RecordForm({
         <Input
           id="payee_reference"
           name="payee_reference"
-          defaultValue={payeeReference ?? ""}
+          value={payee}
+          onChange={(event) => setPayee(event.target.value)}
           maxLength={100}
           autoComplete="off"
           spellCheck={false}
@@ -154,7 +159,14 @@ export function RecordForm({
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="internal_note">Internal note</Label>
-        <Textarea id="internal_note" name="internal_note" defaultValue={internalNote ?? ""} maxLength={5000} rows={4} />
+        <Textarea
+          id="internal_note"
+          name="internal_note"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          maxLength={5000}
+          rows={4}
+        />
         <p className="text-xs text-muted-foreground">Admins only. Changes are logged, the text itself is not.</p>
       </div>
       <FormMessage state={state} />
@@ -183,7 +195,12 @@ export function ContractForm({
   url: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateCreatorContract, {});
+  // Controlled, all of them: React resets a form after its action, and a
+  // refused save (a file-share link) must not wipe what was typed.
   const [status, setStatus] = useState<ContractStatus>(savedStatus);
+  const [signed, setSigned] = useState(signedOn ?? "");
+  const [ended, setEnded] = useState(endedOn ?? "");
+  const [link, setLink] = useState(url ?? "");
   const needsSigned = status === "signed" || status === "ended";
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -222,7 +239,8 @@ export function ContractForm({
               name="contract_signed_on"
               type="date"
               required
-              defaultValue={signedOn ?? ""}
+              value={signed}
+              onChange={(event) => setSigned(event.target.value)}
               className="w-48"
             />
           </div>
@@ -234,7 +252,8 @@ export function ContractForm({
                 name="contract_ended_on"
                 type="date"
                 required
-                defaultValue={endedOn ?? ""}
+                value={ended}
+                onChange={(event) => setEnded(event.target.value)}
                 className="w-48"
               />
             </div>
@@ -253,7 +272,8 @@ export function ContractForm({
           id="contract_url"
           name="contract_url"
           type="url"
-          defaultValue={url ?? ""}
+          value={link}
+          onChange={(event) => setLink(event.target.value)}
           maxLength={500}
           placeholder="https://my.skribble.com/…"
           autoComplete="off"
