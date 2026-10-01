@@ -80,14 +80,63 @@ cp .env.example .env.local
 
 | variable | where it comes from |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | already filled in — the admin project |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Admin project → Project Settings → API |
-| `SUPABASE_SERVICE_ROLE_KEY` | Admin project → Project Settings → API. Server-only. |
+| `SUPABASE_URL` | already filled in — the admin project |
+| `SUPABASE_PUBLISHABLE_KEY` | already filled in — public by design |
+| `SUPABASE_SECRET_KEY` | Admin project → Settings → API Keys → a `sb_secret_…` key. Server-only. |
 | `CYCLEA_APP_DATABASE_URL` | assembled by hand — see below |
 
 `.env.local` is gitignored. `.env.example` is the committed shape and must be
 updated whenever a variable is added, or the next machine silently starts with a
 missing one.
+
+None of these carries a `NEXT_PUBLIC_` prefix: every Supabase call runs on the
+server, so nothing needs to reach the browser.
+
+## Admin sign-in
+
+Email code, then an authenticator app (TOTP) — mandatory, and asked again after
+12 hours (`TOTP_FRESH_FOR_SECONDS` in `lib/auth/dal.ts`). No passwords, no magic
+links. Signup is off: an account exists only if a script created it.
+
+**Adding an admin** (and the very first one), from a machine with
+`SUPABASE_SECRET_KEY` in `.env.local` (Node 22.18+ for TypeScript scripts):
+
+```bash
+npm run admin -- grant someone@cyclea.app
+```
+
+Creates the account if needed and calls `grant_admin()`, which writes the
+`admins` row and its `audit_log` entry in one transaction. Re-running is a
+no-op. They then sign in at `/login` and set up their authenticator.
+
+**Lost authenticator** — the only way back in for a sole admin:
+
+```bash
+npm run admin -- reset-mfa someone@cyclea.app
+```
+
+Deletes their TOTP factors (audited as `admin.reset_mfa`); they set up a new
+one at the next sign-in.
+
+### Auth settings live in `supabase/config.toml`
+
+Signup off, code length and expiry, the code-only email template
+(`supabase/templates/login-code.html`), Postmark SMTP and TOTP are versioned
+there and applied with:
+
+```bash
+cat supabase/.temp/project-ref          # must be mtcnwjpjbupsbkbhqbph
+POSTMARK_SMTP_TOKEN=… supabase config push
+```
+
+`config push` shows a diff and asks before changing anything. **Read every line
+of it**: it sends the whole file, so a value left at its local default (a
+`127.0.0.1` URL, signup on, 2 emails an hour) would reach production. The
+Postmark token is the server's API token (it is both SMTP username and
+password) and is never committed.
+
+Postmark sends from `no-reply@cyclea.app`; the domain is verified there. It is
+a subprocessor and belongs in the privacy policy.
 
 ## Creating the `admin_portal` role
 
@@ -169,11 +218,7 @@ transit.
 
 ## What is not set up yet
 
-- No application code beyond the scaffold: Next.js, shadcn/ui and the ReUI
-  registry are wired in, with no routes yet.
-- Migration 0001 (the audit log) is applied; nothing writes to it yet.
-- No auth. Admins and creators both live in the admin project's `auth.users`,
-  separated by role; **public signup must be disabled**, since creators are
-  invited and admins are us.
+- Admin sign-in exists (see *Admin sign-in*); `/admin` is a placeholder page.
+  Creator logins and `/portal` come with the portal.
 - No domain. `admin.cyclea.app` and the portal route are DNS in the same place
   the marketing site is managed.

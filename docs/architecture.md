@@ -35,7 +35,7 @@ Three credentials, and the second one is the whole design:
 
 | credential | env var | reaches |
 |---|---|---|
-| admin project service role | `SUPABASE_SERVICE_ROLE_KEY` | payouts, rates, audit log, creator logins — no app data at all |
+| admin project secret key (role `service_role`) | `SUPABASE_SECRET_KEY` | payouts, rates, audit log, creator logins — no app data at all |
 | `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | `creator_revenue_events`, and writes to `public.creators`. Nothing else. |
 | app project service role | — | **never exists here.** Edge Functions only, and it never leaves Supabase. |
 
@@ -48,14 +48,16 @@ yet*; keep the list exactly that short, and when something new is needed, prefer
 
 Two consequences that are easy to violate by accident:
 
-- **No `NEXT_PUBLIC_` variable may ever describe the app project.** The admin
-  project's URL and anon key are public by design — they go to the browser and
-  RLS is what protects them. Anything app-project-related is server-only, with
-  no exceptions, because a `NEXT_PUBLIC_` prefix is a one-character mistake that
+- **No `NEXT_PUBLIC_` variable may ever describe the app project.** In practice
+  there are none at all: every Supabase call runs on the server, so even the
+  admin project's URL and publishable key (public by design, protected by RLS)
+  stay server-side. Anything app-project-related is server-only, with no
+  exceptions, because a `NEXT_PUBLIC_` prefix is a one-character mistake that
   ships a credential to every visitor.
-- **Name the two Supabase clients unmistakably.** Not `supabase` and
-  `supabase2`. Something like `adminDb` and `appDbReadOnly`, so a wrong import
-  reads wrong.
+- **Name the Supabase clients unmistakably.** Not `supabase` and `supabase2`:
+  `adminDb()` (secret key), `adminDbAsUser()` (the signed-in user's session) in
+  `lib/db/`, and `appDbReadOnly` when the app project is first read, so a wrong
+  import reads wrong.
 
 ## The app-side read surface
 

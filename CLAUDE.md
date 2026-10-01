@@ -36,11 +36,15 @@ The decision record for why this is a separate repo and a separate database is
   RLS policy this role needs) are applied.
 - **Next.js 16 is scaffolded and deployed** (TypeScript, Tailwind v4, App
   Router, npm, no `src/`), with shadcn/ui and the `@reui` registry wired in.
-  The root page is a placeholder; there are no routes, clients or auth yet.
 - **Migration 0001 (the append-only audit log) is applied** to the admin
   project and its VERIFY block passed against production (2026-09-30).
-- **Next step**: auth — admins and creators in the admin project's
-  `auth.users`, public signup off.
+- **Admin sign-in is built** (email code + mandatory TOTP, re-asked after 12 h;
+  `lib/auth/dal.ts` is the boundary) but **not live**: migration 0002 (`admins`
+  + `grant_admin`) and the auth config (`supabase config push`) are not yet
+  applied, and Render does not have the new env vars. `docs/setup.md` §
+  *Admin sign-in*.
+- **Next step**: apply 0002 and the auth config, set env vars, bootstrap the
+  first admin, deploy; then the first admin feature.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -51,6 +55,8 @@ npm run dev                          # Next.js dev server
 npm run build                        # production build
 npm run lint
 npm run typecheck                    # next typegen && tsc --noEmit
+npm run admin -- grant <email>       # make an admin (needs SUPABASE_SECRET_KEY)
+npm run admin -- reset-mfa <email>   # lost authenticator
 supabase link --project-ref mtcnwjpjbupsbkbhqbph   # the ADMIN project
 supabase db push                     # apply migrations — check what is linked first
 ```
@@ -68,11 +74,15 @@ and this app runs on a public web host.
 - The app project is reached **only** as the `admin_portal` Postgres role, whose
   grants are `SELECT` on `public.creator_revenue_events` and `INSERT/UPDATE` on
   `public.creators`. Postgres enforces that; our code is not what makes it safe.
-- **No `NEXT_PUBLIC_` variable may describe the app project.** The prefix ships
-  a value to every visitor. The admin project's URL and anon key are public by
-  design and protected by RLS; nothing app-side is.
-- Name the two clients so a wrong import reads wrong — `adminDb` and
-  `appDbReadOnly`, never `supabase` and `supabase2`.
+- **No `NEXT_PUBLIC_` variables at all.** The prefix ships a value to every
+  visitor; every Supabase call here runs on the server, so nothing needs one —
+  and for the app project it would be a breach.
+- Name the clients so a wrong import reads wrong — `adminDb()` (admin secret
+  key), `adminDbAsUser()` (the signed-in user's session), `appDbReadOnly` —
+  never `supabase` and `supabase2`.
+- **Every admin page and server action calls `requireAdmin()`**
+  (`lib/auth/dal.ts`). The proxy only refreshes sessions and redirects early;
+  a layout check alone misses client navigation and direct action POSTs.
 
 ## Working with the two databases
 
