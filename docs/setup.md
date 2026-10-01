@@ -138,15 +138,23 @@ sizes, storage analytics and email confirmations would all have changed
 production. Those are now set to production's values or commented out; keep
 it that way, so the diff only ever shows what a change meant to change.
 
-Then push, with the Postmark **Server API token** (it is both SMTP username
-and password). It is read from the environment and never committed; it is
-needed on **every** push, since the file declares the SMTP settings:
+Then push, with a Postmark **SMTP Token** — an access key / secret key pair
+(Postmark server → Default Transactional Stream → Settings → SMTP). Both are
+read from the environment and never committed, and both are needed on
+**every** push, since the file declares the SMTP settings:
 
 ```bash
-read -rs "POSTMARK_SMTP_TOKEN?Postmark server token: "; export POSTMARK_SMTP_TOKEN
+read -rs "POSTMARK_SMTP_ACCESS_KEY?Postmark SMTP access key: "; export POSTMARK_SMTP_ACCESS_KEY
+read -rs "POSTMARK_SMTP_SECRET_KEY?Postmark SMTP secret key: "; export POSTMARK_SMTP_SECRET_KEY
 supabase config push --project-ref mtcnwjpjbupsbkbhqbph
-unset POSTMARK_SMTP_TOKEN
+unset POSTMARK_SMTP_ACCESS_KEY POSTMARK_SMTP_SECRET_KEY
 ```
+
+**Never use the Postmark server API token here.** Supabase's API masks the SMTP
+password but returns the username in plain text, so `config diff` prints
+whatever the username is. With the server token that was the whole credential
+(it happened once, 2026-09-30; the token was rotated). With an SMTP Token the
+diff shows only the access key, which is useless without the secret.
 
 Run these one line at a time, and without trailing `# comments`: zsh does not
 treat `#` as a comment at an interactive prompt, so the words are passed to the
