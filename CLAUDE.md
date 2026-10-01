@@ -56,12 +56,17 @@ The decision record for why this is a separate repo and a separate database is
   changes need a TOTP code from the last 5 minutes. Verified in production with
   `stefan+admintest@cyclea.app` (audit 12 grant, 13 revoke); that account stays
   without access, by decision.
-- **Users** (`/admin/users`) replaces the Admins section: every login in this
-  project with its role (Admin, later Creator, else No access); make admin,
-  revoke, reset authenticator, and **delete accounts without a role**
-  (migration 0005). Top bar: Creators · Users · Audit log; old `/admin/admins`
-  URLs redirect. Built, **not live** until 0005 is applied.
-- **Next step**: apply 0005, deploy, delete `stefan+admintest` through the UI.
+- **Users is live** (`/admin/users`, 2026-10-01), replacing the Admins section:
+  every login in this project with its role (Admin, later Creator, else No
+  access); make admin, revoke, reset authenticator, and **delete accounts
+  without a role** (migration 0005). Top bar: Creators · Users · Audit log.
+  Verified in production: `stefan+admintest@cyclea.app` deleted through the UI
+  (audit 14; no sessions, identities or factors left). One account remains: the
+  user, as the only admin.
+- **Next step**: not yet chosen. Payouts stay blocked by `docs/payouts.md`;
+  referral counts per creator (app-side view, then Render in the privacy
+  policy) and the creator portal (invited logins, linked as a role) are the
+  candidates.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
