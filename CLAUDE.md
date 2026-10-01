@@ -38,13 +38,13 @@ The decision record for why this is a separate repo and a separate database is
   Router, npm, no `src/`), with shadcn/ui and the `@reui` registry wired in.
 - **Migration 0001 (the append-only audit log) is applied** to the admin
   project and its VERIFY block passed against production (2026-09-30).
-- **Admin sign-in is built** (email code + mandatory TOTP, re-asked after 12 h;
-  `lib/auth/dal.ts` is the boundary) but **not live**: migration 0002 (`admins`
-  + `grant_admin`) and the auth config (`supabase config push`) are not yet
-  applied, and Render does not have the new env vars. `docs/setup.md` §
-  *Admin sign-in*.
-- **Next step**: apply 0002 and the auth config, set env vars, bootstrap the
-  first admin, deploy; then the first admin feature.
+- **Admin sign-in is live** (2026-10-01): email code via Postmark, then a
+  mandatory authenticator, re-asked after 12 h; `lib/auth/dal.ts` is the
+  boundary. Migration 0002 (`admins` + `grant_admin`) and the auth config are
+  applied; one admin (the user), bootstrapped by `scripts/admin.ts`.
+  `docs/setup.md` § *Admin sign-in* has the traps hit on the way (misnamed
+  `[auth.email] enable_signup`, SMTP password not pushed, init defaults).
+- **Next step**: the first admin feature.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 

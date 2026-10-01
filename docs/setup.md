@@ -150,6 +150,13 @@ supabase config push --project-ref mtcnwjpjbupsbkbhqbph
 unset POSTMARK_SMTP_ACCESS_KEY POSTMARK_SMTP_SECRET_KEY
 ```
 
+**`config push` does not update the SMTP password.** The API masks it, so the
+CLI cannot compare it and does not send it; a changed password stays the old
+one, and Postmark answers `535 5.7.8 authentication failed` (seen 2026-10-01,
+after rotating to an SMTP Token). Whenever the secret key changes, also set it
+in the dashboard: Authentication → Emails → SMTP Settings → password. The
+username does go through `config push`.
+
 **Never use the Postmark server API token here.** Supabase's API masks the SMTP
 password but returns the username in plain text, so `config diff` prints
 whatever the username is. With the server token that was the whole credential
