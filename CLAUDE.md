@@ -37,11 +37,10 @@ The decision record for why this is a separate repo and a separate database is
 - **Next.js 16 is scaffolded and deployed** (TypeScript, Tailwind v4, App
   Router, npm, no `src/`), with shadcn/ui and the `@reui` registry wired in.
   The root page is a placeholder; there are no routes, clients or auth yet.
-- **Migration 0001 (the append-only audit log) is written and tested** against
-  a local Postgres 17 with this project's default privileges, but **not yet
-  applied** to the admin project.
-- **Next step**: `supabase db push` for 0001, then auth (admins and creators in
-  the admin project's `auth.users`, public signup off).
+- **Migration 0001 (the append-only audit log) is applied** to the admin
+  project and its VERIFY block passed against production (2026-09-30).
+- **Next step**: auth — admins and creators in the admin project's
+  `auth.users`, public signup off.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
