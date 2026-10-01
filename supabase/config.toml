@@ -155,11 +155,14 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# Production. Codes, not links, so nothing redirects here today -- but it is
+# the base for any URL Auth builds, and a 127.0.0.1 value here would be pushed.
+site_url = "https://cyclea-admin.onrender.com"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# None: sign-in is a 6-digit code entered on our own page, never a redirect.
+additional_redirect_urls = []
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -172,7 +175,9 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+# OFF: admins are added by scripts/admin.ts, creators will be invited. Nobody
+# signs themselves up.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
@@ -195,7 +200,8 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# 2 is the local default; with Postmark it would throttle the sign-in codes.
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -217,7 +223,7 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-enable_signup = true
+enable_signup = false
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
@@ -226,21 +232,31 @@ enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+# One code per minute per address, so the form cannot be used to flood an inbox.
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+# 10 minutes: a code is typed straight from the inbox, not saved for later.
+otp_expiry = 600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Postmark. Its SMTP username and password are both the server API token,
+# which comes from the environment at `supabase config push` time and is never
+# committed. Sending domain cyclea.app is verified in Postmark.
+[auth.email.smtp]
+enabled = true
+host = "smtp.postmarkapp.com"
+port = 587
+user = "env(POSTMARK_SMTP_TOKEN)"
+pass = "env(POSTMARK_SMTP_TOKEN)"
+admin_email = "no-reply@cyclea.app"
+sender_name = "Cyclea Admin"
+
+# signInWithOtp sends the "magic link" template for existing users. Ours shows
+# the code and no link: nothing for a mail scanner to click, nothing to redirect.
+[auth.email.template.magic_link]
+subject = "Your Cyclea Admin sign-in code"
+content_path = "./supabase/templates/login-code.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -299,8 +315,10 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+# Mandatory for admins -- enforced by the app's data access layer, which also
+# re-asks for it after 12 hours.
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
