@@ -44,13 +44,15 @@ The decision record for why this is a separate repo and a separate database is
   applied; one admin (the user), bootstrapped by `scripts/admin.ts`.
   `docs/setup.md` § *Admin sign-in* has the traps hit on the way (misnamed
   `[auth.email] enable_signup`, SMTP password not pushed, init defaults).
-- **Creators** (`/admin/creators`): list, create, rename, activate/deactivate,
-  and the admin-side business record (contract date, payee reference, internal
-  note), all audited. Migration 0003 written and Docker-tested; **not live**
-  until 0003 is applied and the app project's CA certificate and
-  `CYCLEA_APP_DATABASE_URL` are in place (`docs/setup.md`).
-- **Next step**: make Creators live and verify it with a throwaway `ZZVERIFY`
-  creator, removed by hand afterwards (`docs/setup.md` § *Removing a creator*).
+- **Creators is live** (`/admin/creators`, 2026-10-01): list, create, rename,
+  activate/deactivate, and the admin-side business record (contract date, payee
+  reference, internal note), all audited. Verified in production with a
+  throwaway `ZZVERIFY` creator (audit entries 4-11), then removed by hand per
+  `docs/setup.md` § *Removing a creator*. TESTCREATOR remains, deliberately
+  without an admin record, until creator codes no longer need it.
+- **Next step**: not yet chosen. Payouts stay blocked by the open questions in
+  `docs/payouts.md`; a referral-count view (app-side migration) or admin
+  management are unblocked candidates.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
