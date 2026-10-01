@@ -37,7 +37,11 @@ The decision record for why this is a separate repo and a separate database is
 - **Next.js 16 is scaffolded and deployed** (TypeScript, Tailwind v4, App
   Router, npm, no `src/`), with shadcn/ui and the `@reui` registry wired in.
   The root page is a placeholder; there are no routes, clients or auth yet.
-- **Next step**: the first migration — the append-only audit log.
+- **Migration 0001 (the append-only audit log) is written and tested** against
+  a local Postgres 17 with this project's default privileges, but **not yet
+  applied** to the admin project.
+- **Next step**: `supabase db push` for 0001, then auth (admins and creators in
+  the admin project's `auth.users`, public signup off).
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -116,10 +120,15 @@ and rejected — see `docs/architecture.md`.
   amounts are fine; a list of accounts, signup dates or anything per-subscriber
   is not — referred users are app users with cycle data, and a short list is
   often enough to guess identities.
-- **Append-only audit log**, from the first migration: who created which
-  creator, who marked which payout paid, who changed a rate. Append-only means
-  no `UPDATE`/`DELETE` grant for the application role, not merely that the code
-  does not issue them.
+- **Append-only audit log** (`public.audit_log`, migration 0001): who created
+  which creator, who marked which payout paid, who changed a rate. Append-only
+  means no `UPDATE`/`DELETE`/`TRUNCATE` grant for the application role, plus
+  triggers that stop even the owner — not merely that the code does not issue
+  them. A correction is a new row. Never put an app user's id in `details`.
+- **This project's default privileges grant `TRUNCATE` to `anon`,
+  `authenticated` and `service_role`** on every new public table. Start each new
+  table with `REVOKE ALL ... FROM PUBLIC, anon, authenticated, service_role`
+  and grant back what is needed.
 
 ## Database migrations
 

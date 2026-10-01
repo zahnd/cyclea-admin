@@ -171,8 +171,8 @@ transit.
 
 - No application code beyond the scaffold: Next.js, shadcn/ui and the ReUI
   registry are wired in, with no routes yet.
-- No migrations. The first one should create the audit log
-  (`docs/architecture.md` § *The audit log is not optional*).
+- Migration 0001 (the audit log) is written but not yet applied — run
+  `supabase db push` after linking, then its `VERIFY` block.
 - No auth. Admins and creators both live in the admin project's `auth.users`,
   separated by role; **public signup must be disabled**, since creators are
   invited and admins are us.
