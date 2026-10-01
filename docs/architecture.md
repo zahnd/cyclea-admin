@@ -41,10 +41,10 @@ Three credentials, and the second one is the whole design:
 
 `admin_portal` is a plain login role with hand-written grants. Postgres enforces
 them, which is a far stronger guarantee than a code review of every query this
-app will ever contain. The grants are in
-`cyclea-app/docs/todo.md` § *The `admin_portal` Postgres role does not exist
-yet*; keep the list exactly that short, and when something new is needed, prefer
-**a new view in the app project** over widening the role.
+app will ever contain. The grants are in `docs/setup.md` § *Creating the
+`admin_portal` role* (and `cyclea-app/docs/admin-platform.md`); keep the list
+exactly that short, and when something new is needed, prefer **a new view in the
+app project** over widening the role.
 
 Two consequences that are easy to violate by accident:
 
