@@ -75,7 +75,24 @@ async function grantedBy(): Promise<Map<string, string>> {
   return by;
 }
 
-function toRow(user: User, admins: Map<string, string>, by: Map<string, string>): UserRow {
+/**
+ * Whether the user has a verified TOTP factor. Asked of Auth per user: the
+ * user objects from listUsers carry NO `factors` field at all (getUserById's
+ * do), so reading it there showed every account as "Not yet" -- found
+ * 2026-10-01 when the panel said so of an admin who had just passed step-up.
+ */
+async function hasVerifiedTotp(userId: string): Promise<boolean> {
+  const { data, error } = await adminDb().auth.admin.mfa.listFactors({ userId });
+  if (error) throw new Error(`factors for ${userId}: ${error.message}`);
+  return data.factors.some((f) => f.factor_type === "totp" && f.status === "verified");
+}
+
+function toRow(
+  user: User,
+  hasAuthenticator: boolean,
+  admins: Map<string, string>,
+  by: Map<string, string>,
+): UserRow {
   const adminSince = admins.get(user.id) ?? null;
   return {
     userId: user.id,
@@ -85,20 +102,22 @@ function toRow(user: User, admins: Map<string, string>, by: Map<string, string>)
     adminSince,
     adminGrantedBy: adminSince ? (by.get(user.id) ?? null) : null,
     lastSignInAt: user.last_sign_in_at ?? null,
-    hasAuthenticator: (user.factors ?? []).some((f) => f.factor_type === "totp" && f.status === "verified"),
+    hasAuthenticator,
   };
 }
 
 export async function listUsers(): Promise<UserRow[]> {
   const [users, admins, by] = await Promise.all([allAuthUsers(), adminRows(), grantedBy()]);
-  return users.map((user) => toRow(user, admins, by));
+  // A handful of accounts: one factor lookup each is fine.
+  const factors = await Promise.all(users.map((user) => hasVerifiedTotp(user.id)));
+  return users.map((user, i) => toRow(user, factors[i], admins, by));
 }
 
 export async function getUser(userId: string): Promise<UserRow | null> {
   const { data, error } = await adminDb().auth.admin.getUserById(userId);
   if (error || !data.user) return null;
-  const [admins, by] = await Promise.all([adminRows(), grantedBy()]);
-  return toRow(data.user, admins, by);
+  const [hasAuthenticator, admins, by] = await Promise.all([hasVerifiedTotp(userId), adminRows(), grantedBy()]);
+  return toRow(data.user, hasAuthenticator, admins, by);
 }
 
 export async function listAuditLog(): Promise<AuditEntry[]> {
