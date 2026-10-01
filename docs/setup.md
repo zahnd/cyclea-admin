@@ -156,6 +156,11 @@ whatever the username is. With the server token that was the whole credential
 (it happened once, 2026-09-30; the token was rotated). With an SMTP Token the
 diff shows only the access key, which is useless without the secret.
 
+**`[auth.email] enable_signup` is the email provider's on/off switch**, not a
+signup setting, whatever its name and comment suggest. It must stay `true`;
+`false` turns off email sign-in for everyone (`email_provider_disabled`).
+Signups are blocked by `[auth] enable_signup = false`.
+
 Run these one line at a time, and without trailing `# comments`: zsh does not
 treat `#` as a comment at an interactive prompt, so the words are passed to the
 CLI as arguments and it prints its help instead of pushing.

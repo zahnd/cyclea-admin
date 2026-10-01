@@ -228,8 +228,12 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# DESPITE THE NAME, this is the on/off switch for the whole email provider
+# (Supabase's `external_email_enabled`), not a signup setting. Setting it false
+# turned off email sign-in for everyone: signInWithOtp answered
+# `email_provider_disabled` (2026-10-01). Signups are blocked by
+# [auth] enable_signup = false above, which is the right switch.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
