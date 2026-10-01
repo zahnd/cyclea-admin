@@ -172,12 +172,13 @@ Run these one line at a time, and without trailing `# comments`: zsh does not
 treat `#` as a comment at an interactive prompt, so the words are passed to the
 CLI as arguments and it prints its help instead of pushing.
 
-Postmark sends from `no-reply@cyclea.app`; the domain is verified there. It
-carries no app-user data -- only sign-in codes to admins, and later creators --
-so it does not belong in the app's privacy policy (`cyclea.app/privacy-policy`
-covers app users). When creators get logins, it goes in the creator agreement's
-privacy terms, which is where `cyclea-app/docs/admin-platform.md` puts
-creator-facing processing.
+Postmark sends from `no-reply@cyclea.app`; the domain is verified there. Postmark
+is already a subprocessor of **app-user** data independently of this repo: the
+app project sends its auth emails (email-change confirmations and the like)
+through it too. So it belongs in `cyclea.app/privacy-policy` -- which, checked
+2026-10-01, names neither Postmark nor Render. For creators, once they get
+logins, it also goes in the creator agreement's privacy terms
+(`cyclea-app/docs/admin-platform.md` § *Compliance touchpoints*).
 
 ## Creating the `admin_portal` role
 
