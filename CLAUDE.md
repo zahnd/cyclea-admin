@@ -50,11 +50,15 @@ The decision record for why this is a separate repo and a separate database is
   throwaway `ZZVERIFY` creator (audit entries 4-11), then removed by hand per
   `docs/setup.md` § *Removing a creator*. TESTCREATOR remains, deliberately
   without an admin record, until creator codes no longer need it.
-- **Admin management** (`/admin/admins`): add, revoke (migration 0004:
-  never yourself, never the last admin, race-safe), reset another admin's
-  authenticator, and a read-only **audit log** page. Built, **not live** until
-  0004 is applied.
-- **Next step**: apply 0004, deploy, verify with a test admin.
+- **Admin management is live** (`/admin/admins`, 2026-10-01): add, revoke
+  (migration 0004: never yourself, never the last admin, race-safe), reset
+  another admin's authenticator, and a read-only **audit log** page; admin-rights
+  changes need a TOTP code from the last 5 minutes. Verified in production with
+  `stefan+admintest@cyclea.app` (audit 12 grant, 13 revoke); that account stays
+  without access, by decision.
+- **Next step**: not yet chosen. Payouts stay blocked by `docs/payouts.md`; a
+  referral-count view (app-side migration, then Render in the privacy policy)
+  is the unblocked candidate.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
