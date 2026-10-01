@@ -1,0 +1,225 @@
+"use server";
+
+import { randomUUID } from "node:crypto";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+import { requireAdmin, type Admin } from "@/lib/auth/dal";
+import { getAppCreator } from "@/lib/creators/data";
+import {
+  codeError,
+  isIsoDate,
+  isUuid,
+  looksLikeIban,
+  nameError,
+  normalizeCode,
+} from "@/lib/creators/validation";
+import { adminDb } from "@/lib/db/admin";
+import { appDbAsAdminPortal } from "@/lib/db/app";
+
+// A creator spans two databases, so no change here is one transaction.
+// The order is always: the app project first (a code must work the moment it
+// is handed out), then the admin project's record or audit entry. If the
+// second half fails, the change is real and visible, and the action says the
+// record is incomplete rather than pretending it did not happen.
+
+export type FormState = { error?: string; ok?: string };
+
+/** Every server action calls requireAdmin() itself: a POST does not pass the layout. */
+async function actor(): Promise<{ admin: Admin; actor: { p_actor_id: string; p_actor_label: string } }> {
+  const admin = await requireAdmin();
+  return { admin, actor: { p_actor_id: admin.userId, p_actor_label: admin.email } };
+}
+
+async function audit(
+  admin: Admin,
+  action: string,
+  creatorId: string,
+  details: Record<string, unknown>,
+): Promise<string | null> {
+  const { error } = await adminDb().from("audit_log").insert({
+    actor_id: admin.userId,
+    actor_label: admin.email,
+    action,
+    target_type: "creator",
+    target_id: creatorId,
+    details,
+  });
+  if (!error) return null;
+  console.error(`[creators] audit ${action} for ${creatorId} failed: ${error.message}`);
+  return "The change was saved, but writing the audit entry failed. Note what you changed and check the server log.";
+}
+
+function idFrom(formData: FormData): string {
+  const id = String(formData.get("id") ?? "");
+  if (!isUuid(id)) throw new Error("Invalid creator id.");
+  return id;
+}
+
+function pgCode(error: unknown): string | undefined {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code: unknown }).code)
+    : undefined;
+}
+
+// ---------------------------------------------------------------------------
+
+export async function createCreator(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { admin, actor: who } = await actor();
+
+  const code = normalizeCode(String(formData.get("code") ?? ""));
+  const name = String(formData.get("name") ?? "").trim();
+  const invalid = codeError(code) ?? nameError(name);
+  if (invalid) return { error: invalid };
+
+  // The id is chosen here, once, and used on both sides.
+  const id = randomUUID();
+  try {
+    await appDbAsAdminPortal().query(
+      "INSERT INTO public.creators (id, code, name) VALUES ($1, $2, $3)",
+      [id, code, name],
+    );
+  } catch (error) {
+    if (pgCode(error) === "23505") return { error: `The code ${code} is already taken.` };
+    console.error(`[creators] app insert failed: ${String(error)}`);
+    return { error: "Could not create the creator in the app. Nothing was saved." };
+  }
+
+  const { error } = await adminDb().rpc("record_creator", {
+    p_id: id,
+    p_code: code,
+    p_name: name,
+    p_adopted: false,
+    ...who,
+  });
+  if (error) {
+    // The creator exists in the app and its code works; the detail page shows
+    // "No admin record" with an Add record button for exactly this case.
+    console.error(`[creators] record_creator for ${id} (${admin.email}) failed: ${error.message}`);
+  }
+
+  revalidatePath("/admin/creators");
+  redirect(`/admin/creators/${id}`);
+}
+
+export async function renameCreator(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { admin } = await actor();
+  const id = idFrom(formData);
+  const name = String(formData.get("name") ?? "").trim();
+  const invalid = nameError(name);
+  if (invalid) return { error: invalid };
+
+  const client = await appDbAsAdminPortal().connect();
+  let previous: { name: string; code: string } | undefined;
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query<{ name: string; code: string }>(
+      "SELECT name, code FROM public.creators WHERE id = $1 FOR UPDATE",
+      [id],
+    );
+    previous = rows[0];
+    if (previous && previous.name !== name) {
+      await client.query("UPDATE public.creators SET name = $2 WHERE id = $1", [id, name]);
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error(`[creators] rename ${id} failed: ${String(error)}`);
+    return { error: "Could not rename the creator. Nothing was changed." };
+  } finally {
+    client.release();
+  }
+
+  if (!previous) return { error: "This creator no longer exists in the app." };
+  if (previous.name === name) return { ok: "No change." };
+
+  const auditError = await audit(admin, "creator.rename", id, {
+    code: previous.code,
+    from: previous.name,
+    to: name,
+  });
+  revalidatePath(`/admin/creators/${id}`);
+  return auditError ? { error: auditError } : { ok: "Renamed." };
+}
+
+export async function setCreatorActive(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { admin } = await actor();
+  const id = idFrom(formData);
+  const active = formData.get("active") === "true";
+
+  let code: string | undefined;
+  try {
+    // `active IS DISTINCT FROM` makes a repeated click a no-op, and a no-op
+    // writes no audit entry.
+    const { rows } = await appDbAsAdminPortal().query<{ code: string }>(
+      "UPDATE public.creators SET active = $2 WHERE id = $1 AND active IS DISTINCT FROM $2 RETURNING code",
+      [id, active],
+    );
+    code = rows[0]?.code;
+  } catch (error) {
+    console.error(`[creators] set active ${id} failed: ${String(error)}`);
+    return { error: "Could not change the status. Nothing was changed." };
+  }
+  if (!code) return { ok: "No change." };
+
+  const auditError = await audit(admin, active ? "creator.activate" : "creator.deactivate", id, { code });
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+  return auditError
+    ? { error: auditError }
+    : { ok: active ? "Active: new users can claim the code." : "Inactive: the code no longer accepts new claims." };
+}
+
+export async function adoptCreator(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { actor: who } = await actor();
+  const id = idFrom(formData);
+
+  const creator = await getAppCreator(id);
+  if (!creator) return { error: "This creator does not exist in the app." };
+
+  const { error } = await adminDb().rpc("record_creator", {
+    p_id: id,
+    p_code: creator.code,
+    p_name: creator.name,
+    p_adopted: true,
+    ...who,
+  });
+  if (error) {
+    console.error(`[creators] adopt ${id} failed: ${error.message}`);
+    return { error: "Could not add the record." };
+  }
+  revalidatePath(`/admin/creators/${id}`);
+  revalidatePath("/admin/creators");
+  return { ok: "Record added." };
+}
+
+export async function updateCreatorRecord(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { actor: who } = await actor();
+  const id = idFrom(formData);
+
+  const contract = String(formData.get("contract_signed_on") ?? "").trim();
+  const payee = String(formData.get("payee_reference") ?? "").trim();
+  const note = String(formData.get("internal_note") ?? "").trim();
+
+  if (contract && !isIsoDate(contract)) return { error: "Enter the contract date as a date." };
+  if (payee.length > 100) return { error: "The payee reference is limited to 100 characters." };
+  if (payee && looksLikeIban(payee)) {
+    return { error: "That looks like an IBAN. Store the Wise recipient id or the bank's payee reference instead — never account details." };
+  }
+  if (note.length > 5000) return { error: "The note is limited to 5000 characters." };
+
+  const { data: changed, error } = await adminDb().rpc("update_creator_record", {
+    p_id: id,
+    p_contract_signed_on: contract || null,
+    p_payee_reference: payee,
+    p_internal_note: note,
+    ...who,
+  });
+  if (error) {
+    console.error(`[creators] update record ${id} failed: ${error.message}`);
+    return { error: "Could not save the record. Nothing was changed." };
+  }
+  revalidatePath(`/admin/creators/${id}`);
+  return { ok: changed ? "Saved." : "No change." };
+}

@@ -55,9 +55,10 @@ Two consequences that are easy to violate by accident:
   exceptions, because a `NEXT_PUBLIC_` prefix is a one-character mistake that
   ships a credential to every visitor.
 - **Name the Supabase clients unmistakably.** Not `supabase` and `supabase2`:
-  `adminDb()` (secret key), `adminDbAsUser()` (the signed-in user's session) in
-  `lib/db/`, and `appDbReadOnly` when the app project is first read, so a wrong
-  import reads wrong.
+  `adminDb()` (secret key), `adminDbAsUser()` (the signed-in user's session) and
+  `appDbAsAdminPortal()` (the app project as `admin_portal`) in `lib/db/`, so a
+  wrong import reads wrong. The last is not called "read-only": the role also
+  creates and edits `creators`.
 
 ## The app-side read surface
 

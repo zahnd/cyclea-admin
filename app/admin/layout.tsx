@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth/dal";
 import { signOut } from "@/lib/auth/sign-out";
@@ -10,7 +12,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex flex-1 flex-col">
       <header className="flex items-center justify-between border-b px-4 py-3">
-        <span className="text-sm font-semibold">Cyclea Admin</span>
+        <nav className="flex items-center gap-4">
+          <span className="text-sm font-semibold">Cyclea Admin</span>
+          <Link href="/admin/creators" className="text-sm text-muted-foreground hover:text-foreground">
+            Creators
+          </Link>
+        </nav>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{admin.email}</span>
           <form action={signOut}>

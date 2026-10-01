@@ -228,6 +228,53 @@ brackets are structural in a URL and must not survive into the value.
 
 It goes in `.env.local` here and in Render's environment, and nowhere else.
 
+## The app project connection (`lib/db/app.ts`)
+
+`appDbAsAdminPortal()` connects as `admin_portal` through the pooler in session
+mode, with a pool of 3. TLS is **verified** against Supabase's CA, unlike the
+connection probe, which skipped verification so a certificate problem could not
+be confused with reachability.
+
+The CA certificate is the **app** project's: Dashboard → Database → SSL
+configuration → Download certificate. It is public (it identifies Supabase, it
+grants nothing), so it is committed as `lib/db/supabase-ca.crt`. If Supabase
+rotates it, the connection fails with a certificate error until the file is
+replaced.
+
+The connection string is parsed into host, port, user and password rather than
+passed as a URL, so an `sslmode` parameter in it cannot change how the
+certificate is checked.
+
+## Removing a creator
+
+Deliberately not in the app: `admin_portal` has no DELETE grant on the app's
+`creators`, and the admin side has no delete function. A creator who stops
+working with us is **deactivated** — the code stops accepting new claims and
+existing referrals are untouched. Removal is for test data and mistakes, by hand:
+
+1. **App project** SQL editor (runs with full rights). Referrals first —
+   `creator_referrals.creator_id` is `ON DELETE RESTRICT`:
+
+   ```sql
+   delete from public.creator_referrals where creator_id = '<id>';
+   delete from public.creators where id = '<id>';
+   ```
+
+2. **Admin project** SQL editor, one transaction, so the removal is on the
+   record too:
+
+   ```sql
+   begin;
+   delete from public.creators where id = '<id>';
+   insert into public.audit_log (actor_label, action, target_type, target_id, details)
+   values ('system:manual-cleanup', 'creator.delete', 'creator', '<id>',
+           '{"code": "<CODE>", "reason": "<why>"}');
+   commit;
+   ```
+
+The creator's earlier audit entries stay: the log is append-only, so a removed
+creator remains part of the history.
+
 ## Linking the Supabase CLI
 
 ```bash
@@ -260,7 +307,7 @@ transit.
 
 ## What is not set up yet
 
-- Admin sign-in exists (see *Admin sign-in*); `/admin` is a placeholder page.
-  Creator logins and `/portal` come with the portal.
+- Admin sign-in and Creators exist. Creator logins and `/portal` come with the
+  portal.
 - No domain. `admin.cyclea.app` and the portal route are DNS in the same place
   the marketing site is managed.

@@ -44,7 +44,13 @@ The decision record for why this is a separate repo and a separate database is
   applied; one admin (the user), bootstrapped by `scripts/admin.ts`.
   `docs/setup.md` § *Admin sign-in* has the traps hit on the way (misnamed
   `[auth.email] enable_signup`, SMTP password not pushed, init defaults).
-- **Next step**: the first admin feature.
+- **Creators** (`/admin/creators`): list, create, rename, activate/deactivate,
+  and the admin-side business record (contract date, payee reference, internal
+  note), all audited. Migration 0003 written and Docker-tested; **not live**
+  until 0003 is applied and the app project's CA certificate and
+  `CYCLEA_APP_DATABASE_URL` are in place (`docs/setup.md`).
+- **Next step**: make Creators live and verify it with a throwaway `ZZVERIFY`
+  creator, removed by hand afterwards (`docs/setup.md` § *Removing a creator*).
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -78,7 +84,8 @@ and this app runs on a public web host.
   visitor; every Supabase call here runs on the server, so nothing needs one —
   and for the app project it would be a breach.
 - Name the clients so a wrong import reads wrong — `adminDb()` (admin secret
-  key), `adminDbAsUser()` (the signed-in user's session), `appDbReadOnly` —
+  key), `adminDbAsUser()` (the signed-in user's session), `appDbAsAdminPortal()`
+  (the app project as `admin_portal` — not "read-only": it writes `creators`) —
   never `supabase` and `supabase2`.
 - **Every admin page and server action calls `requireAdmin()`**
   (`lib/auth/dal.ts`). The proxy only refreshes sessions and redirects early;
