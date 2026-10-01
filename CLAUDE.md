@@ -34,11 +34,10 @@ The decision record for why this is a separate repo and a separate database is
 - **App-side schema is ready**: `cyclea-app` migrations 0056 (revenue columns +
   the `creator_revenue_events` view), 0057 (what the values mean) and 0058 (the
   RLS policy this role needs) are applied.
-- **Next.js 16 is scaffolded** (TypeScript, Tailwind v4, App Router, npm, no
-  `src/`), replacing the probe. The root page is a placeholder; there are no
-  routes, clients or auth yet.
-- **Next step**: shadcn/ui and ReUI, then the first migration — the append-only
-  audit log.
+- **Next.js 16 is scaffolded and deployed** (TypeScript, Tailwind v4, App
+  Router, npm, no `src/`), with shadcn/ui and the `@reui` registry wired in.
+  The root page is a placeholder; there are no routes, clients or auth yet.
+- **Next step**: the first migration — the append-only audit log.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -137,6 +136,26 @@ New `public` tables need explicit `GRANT`s in the same migration — Supabase
 stopped granting defaults to `anon`/`authenticated` as of 2026-10-30. And
 `REVOKE ... FROM PUBLIC` alone is not enough; name `anon` and `authenticated`
 explicitly.
+
+## UI
+
+- **shadcn/ui on Base UI** (`style: base-nova` in `components.json`), not
+  Radix. Docs and examples written for Radix use different props.
+- **ReUI is a shadcn registry**, `@reui` in `components.json`. shadcn
+  components land in `components/ui/`, ReUI's in `components/reui/`:
+  `npx shadcn@latest add button`, `npx shadcn@latest add @reui/data-grid`.
+  `badge` and `alert` exist in both — `@reui/badge` is the ReUI one.
+- **Use the ReUI MCP before writing props**: `search`, then `get_component` for
+  the real API, then `get_examples`. Its components are reused, not restyled;
+  tables are `data-grid`, never a hand-rolled `<table>`.
+- **Free tier only**: the 22 components and `c-*` examples. Premium blocks need a
+  license key, which would go in `REUI_LICENSE_KEY` (and `.env.example`) with an
+  `Authorization` header on the registry — not set up, not needed so far.
+- **Pick one surface** (ReUI `frame` or shadcn `card`) when the first real page
+  is built, and pass it on every ReUI `search`. Not yet chosen.
+- A data-grid in `/portal` still shows **bucketed rows only** — the privacy
+  rule above is about the grain, and a grid makes per-row display the path of
+  least resistance.
 
 ## Conventions
 

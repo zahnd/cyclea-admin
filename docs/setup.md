@@ -169,7 +169,8 @@ transit.
 
 ## What is not set up yet
 
-- No application code beyond the Next.js scaffold. shadcn/ui and ReUI are next.
+- No application code beyond the scaffold: Next.js, shadcn/ui and the ReUI
+  registry are wired in, with no routes yet.
 - No migrations. The first one should create the audit log
   (`docs/architecture.md` § *The audit log is not optional*).
 - No auth. Admins and creators both live in the admin project's `auth.users`,
