@@ -161,7 +161,7 @@ enabled = true
 # in emails.
 # Production. Codes, not links, so nothing redirects here today -- but it is
 # the base for any URL Auth builds, and a 127.0.0.1 value here would be pushed.
-site_url = "https://cyclea-admin.onrender.com"
+site_url = "https://admin.cyclea.app"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.

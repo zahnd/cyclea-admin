@@ -310,13 +310,18 @@ region choice is about the round trip to Zürich rather than about residency.
 setting. The build command matters: the probe's `build` script was a no-op, and
 `next start` without a prior `next build` exits at boot.
 
+**Address: `https://admin.cyclea.app`** — a CNAME to the service, TLS issued and
+renewed by Render. The Render subdomain (`cyclea-admin.onrender.com`) is
+switched off (service → Settings → Custom Domains), so there is one origin and
+one set of session cookies. Supabase Auth's `site_url` names the same address
+(`supabase/config.toml`). The service runs on a paid instance: the free plan's
+idle spin-down would make creators wait on the portal.
+
 Environment variables are the four above. Render is a **named subprocessor** in
 the privacy policy even holding no data at rest, because it processes it in
 transit.
 
 ## What is not set up yet
 
-- Admin sign-in and Creators exist. Creator logins and `/portal` come with the
-  portal.
-- No domain. `admin.cyclea.app` and the portal route are DNS in the same place
-  the marketing site is managed.
+- Admin sign-in, Creators and Users exist. Creator logins and `/portal` come
+  with the portal.

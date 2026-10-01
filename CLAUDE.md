@@ -63,10 +63,11 @@ The decision record for why this is a separate repo and a separate database is
   Verified in production: `stefan+admintest@cyclea.app` deleted through the UI
   (audit 14; no sessions, identities or factors left). One account remains: the
   user, as the only admin.
-- **Next step**: not yet chosen. Payouts stay blocked by `docs/payouts.md`;
-  referral counts per creator (app-side view, then Render in the privacy
-  policy) and the creator portal (invited logins, linked as a role) are the
-  candidates.
+- **Address: `https://admin.cyclea.app`** (2026-10-01). The Render subdomain is
+  off; Supabase Auth's `site_url` matches. Paid Render instance (no spin-down).
+- **Next step**: the creator portal's first step (invited creator logins, the
+  Creator role, `/portal`). The revenue/referral overview waits for production
+  data: 0 creators and only sandbox purchases so far.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
