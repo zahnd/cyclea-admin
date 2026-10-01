@@ -9,9 +9,10 @@ import { adminDbAsUser } from "@/lib/db/admin-as-user";
 
 // The authorization boundary. The proxy redirects early; this decides.
 //
-// Call requireAdmin() in every admin layout AND page AND server action. A
-// layout does not re-render on client navigation, and a server action is
-// reachable by POST without ever rendering the page it belongs to.
+// Call requireAdmin() (or requireCreator() in /portal) in every layout AND page
+// AND server action. A layout does not re-render on client navigation, and a
+// server action is reachable by POST without ever rendering the page it
+// belongs to.
 
 /** How long a verified authenticator code is trusted before it is asked again. */
 export const TOTP_FRESH_FOR_SECONDS = 12 * 60 * 60;
@@ -49,16 +50,35 @@ export function hasFreshTotp(claims: JwtPayload): boolean {
   );
 }
 
-const isAdmin = cache(async (userId: string): Promise<boolean> => {
-  const { data, error } = await adminDb()
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  // Fail closed: an error reading the table is not a yes.
-  if (error) throw new Error(`admins lookup failed: ${error.message}`);
-  return data !== null;
+/**
+ * What an account may do, read per request from the role tables: admin
+ * (public.admins) or creator (public.creator_logins, migration 0006). The
+ * database guarantees never both.
+ */
+export type Role = { kind: "admin" } | { kind: "creator"; creatorId: string } | { kind: "none" };
+
+export const getRole = cache(async (userId: string): Promise<Role> => {
+  const db = adminDb();
+  const [admin, creator] = await Promise.all([
+    db.from("admins").select("user_id").eq("user_id", userId).maybeSingle(),
+    db.from("creator_logins").select("creator_id").eq("user_id", userId).maybeSingle(),
+  ]);
+  // Fail closed: an error reading either table is not a yes.
+  if (admin.error) throw new Error(`admins lookup failed: ${admin.error.message}`);
+  if (creator.error) throw new Error(`creator_logins lookup failed: ${creator.error.message}`);
+  if (admin.data) return { kind: "admin" };
+  if (creator.data) return { kind: "creator", creatorId: (creator.data as { creator_id: string }).creator_id };
+  return { kind: "none" };
 });
+
+/** End the session of an account with no role, and send it to sign-in. */
+async function denyNoRole(): Promise<never> {
+  // Signup is off, so such an account was revoked, unlinked, or never given a
+  // role. Ending its session beats leaving it half-signed-in.
+  const supabase = await adminDbAsUser();
+  await supabase.auth.signOut();
+  redirect("/login?denied=1");
+}
 
 /**
  * The signed-in admin, or a redirect. With `allowStaleTotp`, an admin whose
@@ -71,15 +91,31 @@ export async function requireAdmin(
   const claims = await getClaims();
   if (!claims?.sub) redirect("/login");
 
-  if (!(await isAdmin(claims.sub))) {
-    // A valid account that is not an admin: end its session rather than leave
-    // it half-signed-in. Signup is off, so this should never happen.
-    const supabase = await adminDbAsUser();
-    await supabase.auth.signOut();
-    redirect("/login?denied=1");
-  }
+  const role = await getRole(claims.sub);
+  // A creator who wanders into /admin belongs in the portal, still signed in.
+  if (role.kind === "creator") redirect("/portal");
+  if (role.kind !== "admin") await denyNoRole();
 
   if (!options.allowStaleTotp && !hasFreshTotp(claims)) redirect("/login/mfa");
 
   return { userId: claims.sub, email: claims.email ?? "" };
+}
+
+export type Creator = { userId: string; email: string; creatorId: string };
+
+/**
+ * The signed-in creator, or a redirect. An email code is enough for creators
+ * (decided 2026-10-01): no authenticator, so no aal2 or freshness check. The
+ * creator id comes from creator_logins -- never from the request -- so a
+ * creator can only ever see their own data.
+ */
+export async function requireCreator(): Promise<Creator> {
+  const claims = await getClaims();
+  if (!claims?.sub) redirect("/login");
+
+  const role = await getRole(claims.sub);
+  if (role.kind === "admin") redirect("/admin");
+  if (role.kind !== "creator") return denyNoRole();
+
+  return { userId: claims.sub, email: claims.email ?? "", creatorId: role.creatorId };
 }

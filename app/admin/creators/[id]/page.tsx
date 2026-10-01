@@ -5,11 +5,11 @@ import { Badge } from "@/components/reui/badge";
 import { PageHeader } from "@/components/page-header";
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from "@/components/reui/frame";
 import { requireAdmin } from "@/lib/auth/dal";
-import { getAppCreator, getCreatorRecord } from "@/lib/creators/data";
+import { getAppCreator, getCreatorLogin, getCreatorRecord } from "@/lib/creators/data";
 import { isUuid } from "@/lib/creators/validation";
 import { formatDateLong } from "@/lib/format";
 
-import { ActiveForm, AdoptForm, RecordForm, RenameForm } from "./forms";
+import { ActiveForm, AdoptForm, InviteLoginForm, RecordForm, RemoveLoginForm, RenameForm } from "./forms";
 
 
 export default async function CreatorPage({ params }: PageProps<"/admin/creators/[id]">) {
@@ -17,7 +17,7 @@ export default async function CreatorPage({ params }: PageProps<"/admin/creators
   const { id } = await params;
   if (!isUuid(id)) notFound();
 
-  const [creator, record] = await Promise.all([getAppCreator(id), getCreatorRecord(id)]);
+  const [creator, record, login] = await Promise.all([getAppCreator(id), getCreatorRecord(id), getCreatorLogin(id)]);
   if (!creator) notFound();
 
   return (
@@ -72,6 +72,22 @@ export default async function CreatorPage({ params }: PageProps<"/admin/creators
             />
           ) : (
             <AdoptForm id={creator.id} />
+          )}
+        </FramePanel>
+      </Frame>
+
+      <Frame>
+        <FrameHeader>
+          <FrameTitle>Portal access</FrameTitle>
+          <FrameDescription>Every change here needs a current code from your own authenticator.</FrameDescription>
+        </FrameHeader>
+        <FramePanel>
+          {!record ? (
+            <p className="text-sm text-muted-foreground">Add the business record first; portal access needs it.</p>
+          ) : login ? (
+            <RemoveLoginForm id={creator.id} email={login.email} />
+          ) : (
+            <InviteLoginForm id={creator.id} />
           )}
         </FramePanel>
       </Frame>

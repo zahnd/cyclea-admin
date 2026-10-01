@@ -51,8 +51,8 @@ function targetHref(row: AuditGridRow): string | null {
 }
 
 function actionVariant(action: string) {
-  if (/\.(revoke|delete|deactivate|reset_mfa)$/.test(action)) return "destructive-outline" as const;
-  if (/\.(grant|create|adopt|activate)$/.test(action)) return "success-outline" as const;
+  if (/\.(revoke|delete|deactivate|reset_mfa|remove_login)$/.test(action)) return "destructive-outline" as const;
+  if (/\.(grant|create|adopt|activate|invite_login)$/.test(action)) return "success-outline" as const;
   return "info-outline" as const;
 }
 

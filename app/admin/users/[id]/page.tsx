@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
@@ -21,6 +22,7 @@ export default async function UserPage({ params }: PageProps<"/admin/users/[id]"
   if (!user) notFound();
   const isYou = user.userId === me.userId;
   const isAdmin = user.role === "admin";
+  const isCreator = user.role === "creator";
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -29,11 +31,11 @@ export default async function UserPage({ params }: PageProps<"/admin/users/[id]"
         title={user.email}
         badges={
           <>
-            <RoleBadge role={user.role} />
+            <RoleBadge role={user.role} creatorCode={user.creatorCode} />
             {isYou && <Badge variant="info-outline">You</Badge>}
             {user.hasAuthenticator ? (
               <Badge variant="success-outline">Authenticator set up</Badge>
-            ) : (
+            ) : isCreator ? null : (
               <Badge variant="warning-outline">No authenticator</Badge>
             )}
           </>
@@ -64,7 +66,19 @@ export default async function UserPage({ params }: PageProps<"/admin/users/[id]"
               <FrameDescription>Every change here needs a current code from your own authenticator.</FrameDescription>
             </FrameHeader>
             <FramePanel>
-              {isAdmin ? <RevokeForm id={user.userId} email={user.email} /> : <GrantForm id={user.userId} email={user.email} />}
+              {isAdmin ? (
+                <RevokeForm id={user.userId} email={user.email} />
+              ) : isCreator && user.creatorId ? (
+                <p className="text-sm text-muted-foreground">
+                  Signs in to the portal as creator{" "}
+                  <Link href={`/admin/creators/${user.creatorId}`} className="font-mono font-medium text-foreground underline underline-offset-4">
+                    {user.creatorCode ?? "(unknown)"}
+                  </Link>
+                  . Portal access is managed on the creator&apos;s page. An account cannot be both creator and admin.
+                </p>
+              ) : (
+                <GrantForm id={user.userId} email={user.email} />
+              )}
             </FramePanel>
           </Frame>
 
@@ -85,9 +99,11 @@ export default async function UserPage({ params }: PageProps<"/admin/users/[id]"
               <FrameDescription>Only for accounts without a role.</FrameDescription>
             </FrameHeader>
             <FramePanel>
-              {isAdmin ? (
+              {isAdmin || isCreator ? (
                 <p className="text-sm text-muted-foreground">
-                  This account is an admin. Revoke admin access first; then it can be deleted.
+                  {isAdmin
+                    ? "This account is an admin. Revoke admin access first; then it can be deleted."
+                    : "This account is a creator login. Remove its portal access first, on the creator's page."}
                 </p>
               ) : (
                 <DeleteForm id={user.userId} email={user.email} />

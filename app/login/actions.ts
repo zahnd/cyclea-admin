@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { getRole } from "@/lib/auth/dal";
 import { adminDbAsUser } from "@/lib/db/admin-as-user";
 
 export type LoginState =
@@ -58,8 +59,8 @@ async function verifyCode(formData: FormData): Promise<LoginState> {
   }
 
   const supabase = await adminDbAsUser();
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error) {
+  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+  if (error || !data.user) {
     return {
       step: "code",
       email,
@@ -67,6 +68,12 @@ async function verifyCode(formData: FormData): Promise<LoginState> {
     };
   }
 
-  // Signed in at aal1. The authenticator check comes next.
-  redirect("/login/mfa");
+  // Signed in at aal1. Where next depends on the role: admins go on to the
+  // authenticator step; creators need nothing more (decided 2026-10-01).
+  const role = await getRole(data.user.id);
+  if (role.kind === "admin") redirect("/login/mfa");
+  if (role.kind === "creator") redirect("/portal");
+  // No role: nothing here for this account. End the session it just got.
+  await supabase.auth.signOut();
+  redirect("/login?denied=1");
 }

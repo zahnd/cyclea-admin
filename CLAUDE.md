@@ -65,9 +65,13 @@ The decision record for why this is a separate repo and a separate database is
   user, as the only admin.
 - **Address: `https://admin.cyclea.app`** (2026-10-01). The Render subdomain is
   off; Supabase Auth's `site_url` matches. Paid Render instance (no spin-down).
-- **Next step**: the creator portal's first step (invited creator logins, the
-  Creator role, `/portal`). The revenue/referral overview waits for production
-  data: 0 creators and only sandbox purchases so far.
+- **Creator portal, first step** (`/portal`): invited creator logins (the
+  Creator role, migration 0006), sign-in by email code only, and a page with the
+  creator's code, status and **referrals per month** (app view
+  `creator_referral_counts`, cyclea-app 0059). Earnings wait for payout terms.
+  Built, **not live** until both migrations are applied.
+- **Next step**: apply cyclea-app 0059 and 0006, deploy, verify with a test
+  creator; add Render to the app privacy policy before real creators use it.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -104,9 +108,13 @@ and this app runs on a public web host.
   key), `adminDbAsUser()` (the signed-in user's session), `appDbAsAdminPortal()`
   (the app project as `admin_portal` — not "read-only": it writes `creators`) —
   never `supabase` and `supabase2`.
-- **Roles are derived, one table each**: Admin = `public.admins`; creator
-  portal logins will add a creator link. **`delete_account()` (0005) must learn
-  every new role**, or that role's accounts become deletable as "no access".
+- **Roles are derived, one table each**: Admin = `public.admins`, Creator =
+  `public.creator_logins` (0006); **never both**, enforced by the database.
+  `getRole()` / `requireCreator()` in `lib/auth/dal.ts`. **Every role function
+  locks `admins, creator_logins` in that order**, and **`delete_account()` must
+  learn every new role**, or that role's accounts become deletable as "no access".
+- **The portal reads only the creator id from `creator_logins`**, never from
+  the request, and only aggregates (monthly at the finest).
 - **Step-up for role and account actions**: grant, revoke, reset-authenticator
   and delete also call `requireRecentTotp()` (`lib/auth/step-up.ts`) — a TOTP code from the
   last 5 minutes, asked for inline (`StepUpField`) when older.

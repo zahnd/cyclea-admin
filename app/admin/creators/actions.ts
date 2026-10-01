@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdmin, type Admin } from "@/lib/auth/dal";
+import { requireRecentTotp } from "@/lib/auth/step-up";
 import { getAppCreator } from "@/lib/creators/data";
 import {
   codeError,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/creators/validation";
 import { adminDb } from "@/lib/db/admin";
 import { appDbAsAdminPortal } from "@/lib/db/app";
+import { findUserByEmail } from "@/lib/users/data";
 
 // A creator spans two databases, so no change here is one transaction.
 // The order is always: the app project first (a code must work the moment it
@@ -24,7 +26,7 @@ import { appDbAsAdminPortal } from "@/lib/db/app";
 // second half fails, the change is real and visible, and the action says the
 // record is incomplete rather than pretending it did not happen.
 
-export type FormState = { error?: string; ok?: string };
+export type FormState = { error?: string; ok?: string; needsCode?: boolean };
 
 /** Every server action calls requireAdmin() itself: a POST does not pass the layout. */
 async function actor(): Promise<{ admin: Admin; actor: { p_actor_id: string; p_actor_label: string } }> {
@@ -222,4 +224,81 @@ export async function updateCreatorRecord(_prev: FormState, formData: FormData):
   }
   revalidatePath(`/admin/creators/${id}`);
   return { ok: changed ? "Saved." : "No change." };
+}
+
+// ---------------------------------------------------------------------------
+// Portal access (migration 0006). Granting or ending someone's sign-in is an
+// account action, so both need the step-up code like the ones in Users.
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function inviteCreatorLogin(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { actor: who } = await actor();
+  const id = idFrom(formData);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!EMAIL.test(email) || email.length > 320) return { error: "Enter a valid email address." };
+
+  const step = await requireRecentTotp(formData);
+  if (!step.ok) return { needsCode: true, error: step.error };
+
+  let userId: string;
+  try {
+    const existing = await findUserByEmail(email);
+    if (existing) {
+      userId = existing.id;
+    } else {
+      // Confirmed up front: their first sign-in is a code to this address.
+      const { data, error } = await adminDb().auth.admin.createUser({ email, email_confirm: true });
+      if (error) throw error;
+      userId = data.user.id;
+    }
+  } catch (error) {
+    console.error(`[creators] invite ${email}: ${error instanceof Error ? error.message : String(error)}`);
+    return { error: "Could not create the account. Nothing was changed." };
+  }
+
+  const { data: linked, error } = await adminDb().rpc("link_creator_login", {
+    p_user_id: userId,
+    p_creator_id: id,
+    ...who,
+  });
+  if (error) {
+    // link_creator_login (0006) names the rule that stopped it in a HINT.
+    const reasons: Record<string, string> = {
+      admin: "This address belongs to an admin. Admins and creators need separate accounts.",
+      linked: "This address already signs in as another creator.",
+      taken: "This creator already has a portal login. Remove it first.",
+      no_record: "Add the business record first.",
+    };
+    if (error.hint && reasons[error.hint]) return { error: reasons[error.hint] };
+    console.error(`[creators] link ${id}: ${error.message}`);
+    return { error: "Could not give portal access." };
+  }
+
+  revalidatePath(`/admin/creators/${id}`);
+  return {
+    ok: linked
+      ? `${email} can now sign in at admin.cyclea.app/portal with a code. Let them know: no email is sent.`
+      : "Already linked. Nothing changed.",
+  };
+}
+
+export async function removeCreatorLogin(_prev: FormState, formData: FormData): Promise<FormState> {
+  const { actor: who } = await actor();
+  const id = idFrom(formData);
+
+  const step = await requireRecentTotp(formData);
+  if (!step.ok) return { needsCode: true, error: step.error };
+
+  const { data: removed, error } = await adminDb().rpc("unlink_creator_login", { p_creator_id: id, ...who });
+  if (error) {
+    console.error(`[creators] unlink ${id}: ${error.message}`);
+    return { error: "Could not remove portal access." };
+  }
+  revalidatePath(`/admin/creators/${id}`);
+  return {
+    ok: removed
+      ? "Portal access removed. The account remains, with no access; delete it in Users if it is not needed."
+      : "No portal login. Nothing changed.",
+  };
 }

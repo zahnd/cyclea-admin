@@ -95,3 +95,37 @@ export async function getCreatorRecord(id: string): Promise<CreatorRecord | null
   if (error) throw new Error(`creator record: ${error.message}`);
   return data ? toRecord(data as RecordRow) : null;
 }
+
+export type MonthlyReferrals = { month: string; referrals: number };
+
+/**
+ * Referrals per month for one creator, newest first, from the app project's
+ * creator_referral_counts view (app migration 0059): aggregate only, nothing
+ * finer than a month, never a user id.
+ */
+export async function listReferralCounts(creatorId: string): Promise<MonthlyReferrals[]> {
+  // `month` comes back as text: pg turns a date column into a JS Date at the
+  // server's LOCAL midnight, and toISOString() then moves 1 October to
+  // 30 September anywhere east of UTC.
+  const { rows } = await appDbAsAdminPortal().query<{ month: string; referrals: number }>(
+    "SELECT to_char(month, 'YYYY-MM-DD') AS month, referrals FROM public.creator_referral_counts WHERE creator_id = $1 ORDER BY month DESC",
+    [creatorId],
+  );
+  return rows.map((row) => ({ month: row.month, referrals: Number(row.referrals) }));
+}
+
+export type CreatorLogin = { userId: string; email: string };
+
+/** The account that signs in to the portal as this creator, if any. */
+export async function getCreatorLogin(creatorId: string): Promise<CreatorLogin | null> {
+  const { data, error } = await adminDb()
+    .from("creator_logins")
+    .select("user_id")
+    .eq("creator_id", creatorId)
+    .maybeSingle();
+  if (error) throw new Error(`creator login: ${error.message}`);
+  if (!data) return null;
+  const userId = (data as { user_id: string }).user_id;
+  const { data: user } = await adminDb().auth.admin.getUserById(userId);
+  return { userId, email: user.user?.email ?? "(no email)" };
+}

@@ -20,6 +20,7 @@ export default async function UsersPage() {
           email: user.email,
           isYou: user.userId === me.userId,
           role: user.role,
+          creatorCode: user.creatorCode,
           createdAt: user.createdAt,
           lastSignInAt: user.lastSignInAt,
           hasAuthenticator: user.hasAuthenticator,

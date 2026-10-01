@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { FormMessage } from "@/components/form-message";
+import { StepUpField } from "@/components/step-up-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 import {
   adoptCreator,
+  inviteCreatorLogin,
+  removeCreatorLogin,
   renameCreator,
   setCreatorActive,
   updateCreatorRecord,
@@ -122,6 +125,61 @@ export function RecordForm({
       <div>
         <Button type="submit" disabled={pending}>
           {pending ? "Saving…" : "Save record"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export function InviteLoginForm({ id }: { id: string }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(inviteCreatorLogin, {});
+  // Controlled: React resets a form after its action, and the email must
+  // survive the round trip that asks for an authenticator code.
+  const [email, setEmail] = useState("");
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="id" value={id} />
+      <p className="text-sm text-muted-foreground">
+        Gives this creator a login for the portal (their code, its status, sign-ups per month). No email is sent —
+        tell them to sign in at admin.cyclea.app/portal with a code. Admins cannot also be creators.
+      </p>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="portal-email">Creator&apos;s email</Label>
+        <Input
+          id="portal-email"
+          name="email"
+          type="email"
+          required
+          autoComplete="off"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </div>
+      <StepUpField show={state.needsCode} />
+      <FormMessage state={state} />
+      <div>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Inviting…" : "Give portal access"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export function RemoveLoginForm({ id, email }: { id: string; email: string }) {
+  const [state, action, pending] = useActionState<FormState, FormData>(removeCreatorLogin, {});
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="id" value={id} />
+      <p className="text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">{email}</span> signs in to the portal as this creator. Removing
+        access ends that on their next click; the account stays, with no access.
+      </p>
+      <StepUpField show={state.needsCode} />
+      <FormMessage state={state} />
+      <div>
+        <Button type="submit" variant="destructive" disabled={pending}>
+          {pending ? "Removing…" : "Remove portal access"}
         </Button>
       </div>
     </form>

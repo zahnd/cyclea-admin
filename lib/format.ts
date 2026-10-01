@@ -28,3 +28,9 @@ export function formatDateTimeUtc(iso: string): string {
   const mm = String(d.getUTCMinutes()).padStart(2, "0");
   return `${formatDateShort(iso)}, ${hh}:${mm} UTC`;
 }
+
+/** "October 2026", from "2026-10-01" -- a calendar month, no time zone involved. */
+export function formatMonth(isoDate: string): string {
+  const [year, month] = isoDate.split("-").map(Number);
+  return `${LONG[month - 1]} ${year}`;
+}

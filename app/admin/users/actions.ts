@@ -29,6 +29,8 @@ async function grant(userId: string, actorId: string, actorLabel: string): Promi
     p_actor_label: actorLabel,
   });
   if (error) {
+    // grant_admin (0006) refuses a creator login: one account, one audience.
+    if (error.hint === "creator") return "This account signs in as a creator. Admins and creators need separate accounts.";
     console.error(`[users] grant ${userId}: ${error.message}`);
     return "Could not grant admin access.";
   }
@@ -172,6 +174,7 @@ export async function deleteAccount(_prev: UserFormState, formData: FormData): P
   if (error) {
     // delete_account (0005) refuses with a HINT naming the rule that stopped it.
     if (error.hint === "admin") return { error: "This account is an admin. Revoke admin access first." };
+    if (error.hint === "creator") return { error: "This account is a creator login. Remove its portal access first, on the creator's page." };
     if (error.hint === "self") return { error: "You cannot delete yourself." };
     console.error(`[users] delete ${id}: ${error.message}`);
     return { error: "Could not delete the account." };

@@ -21,7 +21,8 @@ export type UserGridRow = {
   userId: string;
   email: string;
   isYou: boolean;
-  role: "admin" | "none";
+  role: "admin" | "creator" | "none";
+  creatorCode: string | null;
   createdAt: string;
   lastSignInAt: string | null;
   hasAuthenticator: boolean;
@@ -30,11 +31,14 @@ export type UserGridRow = {
 const ROLE_FILTERS = [
   { value: "all", label: "All roles" },
   { value: "admin", label: "Admins" },
+  { value: "creator", label: "Creators" },
   { value: "none", label: "No access" },
 ];
 
-export function RoleBadge({ role }: { role: UserGridRow["role"] }) {
-  return role === "admin" ? <Badge variant="primary-light">Admin</Badge> : <Badge variant="secondary">No access</Badge>;
+export function RoleBadge({ role, creatorCode }: { role: UserGridRow["role"]; creatorCode?: string | null }) {
+  if (role === "admin") return <Badge variant="primary-light">Admin</Badge>;
+  if (role === "creator") return <Badge variant="info-light">Creator{creatorCode ? ` · ${creatorCode}` : ""}</Badge>;
+  return <Badge variant="secondary">No access</Badge>;
 }
 
 export function UsersGrid({ rows }: { rows: UserGridRow[] }) {
@@ -73,8 +77,8 @@ export function UsersGrid({ rows }: { rows: UserGridRow[] }) {
         accessorKey: "role",
         id: "role",
         header: ({ column }) => <DataGridColumnHeader title="Role" column={column} />,
-        cell: ({ row }) => <RoleBadge role={row.original.role} />,
-        size: 130,
+        cell: ({ row }) => <RoleBadge role={row.original.role} creatorCode={row.original.creatorCode} />,
+        size: 190,
       },
       {
         accessorKey: "hasAuthenticator",
@@ -83,6 +87,9 @@ export function UsersGrid({ rows }: { rows: UserGridRow[] }) {
         cell: ({ row }) =>
           row.original.hasAuthenticator ? (
             <Badge variant="success-outline">Set up</Badge>
+          ) : row.original.role === "creator" ? (
+            // Creators sign in with an email code only (decided 2026-10-01).
+            <span className="text-muted-foreground">Not used</span>
           ) : (
             <Badge variant="warning-outline">Not yet</Badge>
           ),

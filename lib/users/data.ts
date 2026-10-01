@@ -2,19 +2,22 @@ import "server-only";
 
 import type { User } from "@supabase/supabase-js";
 
+import { listAppCreators } from "@/lib/creators/data";
 import { adminDb } from "@/lib/db/admin";
 
 // Every login in the admin project, with its role. App users are in the other
-// project and never appear here. Roles are derived from their own tables --
-// today public.admins; creator portal logins will add a creator link (and
-// delete_account in migration 0005 must learn about it too).
+// project and never appear here. Roles are derived from their own tables:
+// public.admins and public.creator_logins (0006); never both.
 
-export type Role = "admin" | "none";
+export type Role = "admin" | "creator" | "none";
 
 export type UserRow = {
   userId: string;
   email: string;
   role: Role;
+  /** For a creator login: which creator, and its code. */
+  creatorId: string | null;
+  creatorCode: string | null;
   createdAt: string;
   /** When admin access was granted, and by whom (from the audit log). */
   adminSince: string | null;
@@ -54,6 +57,22 @@ async function allAuthUsers(): Promise<User[]> {
   }
 }
 
+/** user_id -> { creator id, code } for every creator login. */
+async function creatorLogins(): Promise<Map<string, { creatorId: string; code: string | null }>> {
+  const [{ data, error }, creators] = await Promise.all([
+    adminDb().from("creator_logins").select("user_id, creator_id"),
+    listAppCreators(),
+  ]);
+  if (error) throw new Error(`creator logins: ${error.message}`);
+  const codes = new Map(creators.map((c) => [c.id, c.code]));
+  return new Map(
+    (data as { user_id: string; creator_id: string }[]).map((r) => [
+      r.user_id,
+      { creatorId: r.creator_id, code: codes.get(r.creator_id) ?? null },
+    ]),
+  );
+}
+
 async function adminRows(): Promise<Map<string, string>> {
   const { data, error } = await adminDb().from("admins").select("user_id, created_at");
   if (error) throw new Error(`admins: ${error.message}`);
@@ -87,17 +106,21 @@ async function hasVerifiedTotp(userId: string): Promise<boolean> {
   return data.factors.some((f) => f.factor_type === "totp" && f.status === "verified");
 }
 
-function toRow(
-  user: User,
-  hasAuthenticator: boolean,
-  admins: Map<string, string>,
-  by: Map<string, string>,
-): UserRow {
+type Roles = {
+  admins: Map<string, string>;
+  by: Map<string, string>;
+  creators: Map<string, { creatorId: string; code: string | null }>;
+};
+
+function toRow(user: User, hasAuthenticator: boolean, { admins, by, creators }: Roles): UserRow {
   const adminSince = admins.get(user.id) ?? null;
+  const creator = creators.get(user.id) ?? null;
   return {
     userId: user.id,
     email: user.email ?? "(no email)",
-    role: adminSince ? "admin" : "none",
+    role: adminSince ? "admin" : creator ? "creator" : "none",
+    creatorId: creator?.creatorId ?? null,
+    creatorCode: creator?.code ?? null,
     createdAt: user.created_at,
     adminSince,
     adminGrantedBy: adminSince ? (by.get(user.id) ?? null) : null,
@@ -107,17 +130,22 @@ function toRow(
 }
 
 export async function listUsers(): Promise<UserRow[]> {
-  const [users, admins, by] = await Promise.all([allAuthUsers(), adminRows(), grantedBy()]);
+  const [users, admins, by, creators] = await Promise.all([allAuthUsers(), adminRows(), grantedBy(), creatorLogins()]);
   // A handful of accounts: one factor lookup each is fine.
   const factors = await Promise.all(users.map((user) => hasVerifiedTotp(user.id)));
-  return users.map((user, i) => toRow(user, factors[i], admins, by));
+  return users.map((user, i) => toRow(user, factors[i], { admins, by, creators }));
 }
 
 export async function getUser(userId: string): Promise<UserRow | null> {
   const { data, error } = await adminDb().auth.admin.getUserById(userId);
   if (error || !data.user) return null;
-  const [hasAuthenticator, admins, by] = await Promise.all([hasVerifiedTotp(userId), adminRows(), grantedBy()]);
-  return toRow(data.user, hasAuthenticator, admins, by);
+  const [hasAuthenticator, admins, by, creators] = await Promise.all([
+    hasVerifiedTotp(userId),
+    adminRows(),
+    grantedBy(),
+    creatorLogins(),
+  ]);
+  return toRow(data.user, hasAuthenticator, { admins, by, creators });
 }
 
 export async function listAuditLog(): Promise<AuditEntry[]> {

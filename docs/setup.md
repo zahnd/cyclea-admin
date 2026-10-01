@@ -106,6 +106,14 @@ revoke yourself or the last admin, and to delete an account that still has a
 role, so the panel cannot lock everyone out or delete someone's access by the
 back door. The audit log has its own section.
 
+**Creator portal access** is given on a creator's page (*Portal access*): an
+email, which becomes an account if it does not exist yet, linked to that
+creator. No email is sent; tell them to sign in at
+`https://admin.cyclea.app/portal`. They sign in with a code only (no
+authenticator). An admin's address cannot be a creator login, and the reverse.
+Removing access keeps the account, with no role; delete it in Users if it is
+not needed.
+
 **`scripts/admin.ts` is the break-glass path** — the first admin, or your own
 authenticator when no other admin can reset it. From a machine with
 `SUPABASE_SECRET_KEY` in `.env.local` (Node 22.18+ for TypeScript scripts):
