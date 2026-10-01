@@ -50,9 +50,11 @@ The decision record for why this is a separate repo and a separate database is
   throwaway `ZZVERIFY` creator (audit entries 4-11), then removed by hand per
   `docs/setup.md` § *Removing a creator*. TESTCREATOR remains, deliberately
   without an admin record, until creator codes no longer need it.
-- **Next step**: not yet chosen. Payouts stay blocked by the open questions in
-  `docs/payouts.md`; a referral-count view (app-side migration) or admin
-  management are unblocked candidates.
+- **Admin management** (`/admin/admins`): add, revoke (migration 0004:
+  never yourself, never the last admin, race-safe), reset another admin's
+  authenticator, and a read-only **audit log** page. Built, **not live** until
+  0004 is applied.
+- **Next step**: apply 0004, deploy, verify with a test admin.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -89,6 +91,9 @@ and this app runs on a public web host.
   key), `adminDbAsUser()` (the signed-in user's session), `appDbAsAdminPortal()`
   (the app project as `admin_portal` — not "read-only": it writes `creators`) —
   never `supabase` and `supabase2`.
+- **Step-up for admin-rights actions**: grant, revoke and reset-authenticator
+  also call `requireRecentTotp()` (`lib/auth/step-up.ts`) — a TOTP code from the
+  last 5 minutes, asked for inline (`StepUpField`) when older.
 - **Every admin page and server action calls `requireAdmin()`**
   (`lib/auth/dal.ts`). The proxy only refreshes sessions and redirects early;
   a layout check alone misses client navigation and direct action POSTs.

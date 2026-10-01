@@ -98,7 +98,14 @@ Email code, then an authenticator app (TOTP) — mandatory, and asked again afte
 12 hours (`TOTP_FRESH_FOR_SECONDS` in `lib/auth/dal.ts`). No passwords, no magic
 links. Signup is off: an account exists only if a script created it.
 
-**Adding an admin** (and the very first one), from a machine with
+**Managing admins** happens in the panel (`/admin/admins`): add, revoke,
+reset another admin's authenticator, and the audit log. Each change of admin
+rights asks for a fresh authenticator code (from the last 5 minutes). The
+database refuses to revoke yourself or the last admin, so the panel cannot lock
+everyone out.
+
+**`scripts/admin.ts` is the break-glass path** — the first admin, or your own
+authenticator when no other admin can reset it. From a machine with
 `SUPABASE_SECRET_KEY` in `.env.local` (Node 22.18+ for TypeScript scripts):
 
 ```bash

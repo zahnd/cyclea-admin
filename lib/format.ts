@@ -20,3 +20,11 @@ export function formatDateLong(iso: string): string {
   const d = new Date(iso);
   return `${d.getUTCDate()} ${LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
+
+/** "1 Oct 2026, 13:53 UTC" -- audit times are shown in UTC, said so, not guessed. */
+export function formatDateTimeUtc(iso: string): string {
+  const d = new Date(iso);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${formatDateShort(iso)}, ${hh}:${mm} UTC`;
+}

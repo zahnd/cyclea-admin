@@ -1,8 +1,7 @@
 import { Alert, AlertDescription } from "@/components/reui/alert";
 
-import type { FormState } from "./actions";
-
-export function FormMessage({ state }: { state: FormState }) {
+/** The outcome of a server action, shown under its form. */
+export function FormMessage({ state }: { state: { error?: string; ok?: string } }) {
   if (state.error) {
     return (
       <Alert variant="destructive">

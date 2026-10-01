@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
+import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { normalizeCode } from "@/lib/creators/validation";
 
 import { createCreator, type FormState } from "../actions";
-import { FormMessage } from "../form-message";
 
 export function NewCreatorForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(createCreator, {});

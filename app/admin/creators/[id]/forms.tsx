@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { FormMessage } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,6 @@ import {
   updateCreatorRecord,
   type FormState,
 } from "../actions";
-import { FormMessage } from "../form-message";
 
 export function RenameForm({ id, name }: { id: string; name: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(renameCreator, {});

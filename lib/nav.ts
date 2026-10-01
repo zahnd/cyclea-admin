@@ -1,4 +1,12 @@
-import { ListIcon, PlusIcon, UsersIcon, type LucideIcon } from "lucide-react";
+import {
+  ListIcon,
+  PlusIcon,
+  ScrollTextIcon,
+  ShieldIcon,
+  UserPlusIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 
 // The admin's navigation, in one place: sections in the top bar, the current
 // section's pages in the sidebar. Only routes that exist -- a link to a page
@@ -40,6 +48,32 @@ export const sections: NavSection[] = [
         href: "/admin/creators/new",
         icon: PlusIcon,
         match: under("/admin/creators/new"),
+      },
+    ],
+  },
+  {
+    title: "Admins",
+    href: "/admin/admins",
+    icon: ShieldIcon,
+    pages: [
+      {
+        title: "All admins",
+        href: "/admin/admins",
+        icon: ListIcon,
+        match: (p) =>
+          under("/admin/admins")(p) && !under("/admin/admins/new")(p) && !under("/admin/admins/audit")(p),
+      },
+      {
+        title: "Add admin",
+        href: "/admin/admins/new",
+        icon: UserPlusIcon,
+        match: under("/admin/admins/new"),
+      },
+      {
+        title: "Audit log",
+        href: "/admin/admins/audit",
+        icon: ScrollTextIcon,
+        match: under("/admin/admins/audit"),
       },
     ],
   },
