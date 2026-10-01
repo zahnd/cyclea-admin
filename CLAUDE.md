@@ -178,8 +178,19 @@ explicitly.
 - **Free tier only**: the 22 components and `c-*` examples. Premium blocks need a
   license key, which would go in `REUI_LICENSE_KEY` (and `.env.example`) with an
   `Authorization` header on the registry — not set up, not needed so far.
-- **Pick one surface** (ReUI `frame` or shadcn `card`) when the first real page
-  is built, and pass it on every ReUI `search`. Not yet chosen.
+- **Surface: ReUI Frame**, chosen with the first real page. Pass
+  `surface: "frame"` on every ReUI `search`; no shadcn Card layouts.
+- **The shell** (`components/admin-shell/`): a sticky top bar with the
+  *sections*, the current section's *pages* in a sidebar below it (an icon rail
+  when collapsed, a drawer on phones). Both come from **`lib/nav.ts`** — add a
+  section or page there, and only for routes that exist. Every page starts with
+  **`PageHeader`** (`components/page-header.tsx`): explicit breadcrumbs, title,
+  description, actions.
+- **Dark mode follows the OS** (`prefers-color-scheme`); there is no `.dark`
+  class and no switch.
+- **Dates shown in client components go through `lib/format.ts`**, never
+  `Intl.DateTimeFormat`: Node's and the browser's locale data differ ("Sept" vs
+  "Sep"), which breaks hydration.
 - A data-grid in `/portal` still shows **bucketed rows only** — the privacy
   rule above is about the grain, and a grid makes per-row display the path of
   least resistance.

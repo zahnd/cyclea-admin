@@ -1,18 +1,16 @@
-import { ArrowLeftIcon } from "lucide-react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/reui/alert";
 import { Badge } from "@/components/reui/badge";
+import { PageHeader } from "@/components/page-header";
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from "@/components/reui/frame";
-import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth/dal";
 import { getAppCreator, getCreatorRecord } from "@/lib/creators/data";
 import { isUuid } from "@/lib/creators/validation";
+import { formatDateLong } from "@/lib/format";
 
 import { ActiveForm, AdoptForm, RecordForm, RenameForm } from "./forms";
 
-const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function CreatorPage({ params }: PageProps<"/admin/creators/[id]">) {
   await requireAdmin();
@@ -23,29 +21,28 @@ export default async function CreatorPage({ params }: PageProps<"/admin/creators
   if (!creator) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-      <div>
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin/creators" />}>
-          <ArrowLeftIcon />
-          Creators
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-mono text-xl font-semibold">{creator.code}</h1>
-        {creator.active ? (
-          <Badge variant="success-outline">Active</Badge>
-        ) : (
-          <Badge variant="secondary">Inactive</Badge>
-        )}
-        {!record && <Badge variant="warning-outline">No admin record</Badge>}
-      </div>
+    <div className="flex max-w-3xl flex-col gap-4">
+      <PageHeader
+        crumbs={[{ label: "Creators", href: "/admin/creators" }, { label: creator.code }]}
+        title={<span className="font-mono">{creator.code}</span>}
+        description={creator.name}
+        badges={
+          <>
+            {creator.active ? (
+              <Badge variant="success-outline">Active</Badge>
+            ) : (
+              <Badge variant="secondary">Inactive</Badge>
+            )}
+            {!record && <Badge variant="warning-outline">No admin record</Badge>}
+          </>
+        }
+      />
 
       <Frame>
         <FrameHeader>
           <FrameTitle>In the app</FrameTitle>
           <FrameDescription>
-            Created {dateFormat.format(new Date(creator.createdAt))}. The code cannot be changed.
+            Created {formatDateLong(creator.createdAt)}. The code cannot be changed.
           </FrameDescription>
         </FrameHeader>
         <FramePanel className="flex flex-col gap-6">

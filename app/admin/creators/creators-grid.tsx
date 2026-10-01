@@ -15,6 +15,7 @@ import { DataGridTable } from "@/components/reui/data-grid/data-grid-table";
 import { Frame, FrameFooter, FrameHeader, FramePanel, FrameTitle } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { formatDateShort } from "@/lib/format";
 
 export type CreatorRow = {
   id: string;
@@ -24,8 +25,6 @@ export type CreatorRow = {
   createdAt: string;
   hasRecord: boolean;
 };
-
-const dateFormat = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 export function CreatorsGrid({ rows }: { rows: CreatorRow[] }) {
   const router = useRouter();
@@ -87,7 +86,7 @@ export function CreatorsGrid({ rows }: { rows: CreatorRow[] }) {
         id: "createdAt",
         header: ({ column }) => <DataGridColumnHeader title="Created" column={column} />,
         cell: ({ row }) => (
-          <span className="text-muted-foreground">{dateFormat.format(new Date(row.original.createdAt))}</span>
+          <span className="text-muted-foreground">{formatDateShort(row.original.createdAt)}</span>
         ),
         size: 140,
       },
@@ -114,7 +113,9 @@ export function CreatorsGrid({ rows }: { rows: CreatorRow[] }) {
     >
       <Frame className="w-full" stacked dense>
         <FrameHeader className="flex w-full flex-row flex-wrap items-center justify-between gap-3">
-          <FrameTitle>Creators</FrameTitle>
+          <FrameTitle>
+            {rows.length === 1 ? "1 creator" : `${rows.length} creators`}
+          </FrameTitle>
           <div className="flex items-center gap-2.5">
             <InputGroup className="w-48 bg-background">
               <InputGroupAddon align="inline-start">

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { requireAdmin } from "@/lib/auth/dal";
 import { listAppCreators, listCreatorRecords } from "@/lib/creators/data";
 
@@ -20,5 +21,13 @@ export default async function CreatorsPage() {
     hasRecord: recorded.has(creator.id),
   }));
 
-  return <CreatorsGrid rows={rows} />;
+  return (
+    <>
+      <PageHeader
+        title="Creators"
+        description="Partners and the codes they share. A code works in the app as soon as it exists."
+      />
+      <CreatorsGrid rows={rows} />
+    </>
+  );
 }
