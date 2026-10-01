@@ -69,9 +69,14 @@ The decision record for why this is a separate repo and a separate database is
   Creator role, migration 0006), sign-in by email code only, and a page with the
   creator's code, status and **referrals per month** (app view
   `creator_referral_counts`, cyclea-app 0059). Earnings wait for payout terms.
-  Built, **not live** until both migrations are applied.
-- **Next step**: apply cyclea-app 0059 and 0006, deploy, verify with a test
-  creator; add Render to the app privacy policy before real creators use it.
+  **Live** (2026-10-01): both migrations applied, verified in production with a
+  throwaway `ZZPORTAL` creator and `stefan+creatortest@cyclea.app` (audit 16
+  create, 17 invite; the session was aal1 with no factors), then fully removed
+  (18 remove login, 19 account delete, 20 creator record delete; the app-side
+  row by hand). Render is in the app privacy policy.
+- **Next step**: not chosen yet. Candidates: a revenue overview once production
+  purchases exist, CI for lint/typecheck/build and the Docker migration tests,
+  and payouts once `docs/payouts.md` is answered.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
