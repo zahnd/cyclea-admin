@@ -172,8 +172,12 @@ Run these one line at a time, and without trailing `# comments`: zsh does not
 treat `#` as a comment at an interactive prompt, so the words are passed to the
 CLI as arguments and it prints its help instead of pushing.
 
-Postmark sends from `no-reply@cyclea.app`; the domain is verified there. It is
-a subprocessor and belongs in the privacy policy.
+Postmark sends from `no-reply@cyclea.app`; the domain is verified there. It
+carries no app-user data -- only sign-in codes to admins, and later creators --
+so it does not belong in the app's privacy policy (`cyclea.app/privacy-policy`
+covers app users). When creators get logins, it goes in the creator agreement's
+privacy terms, which is where `cyclea-app/docs/admin-platform.md` puts
+creator-facing processing.
 
 ## Creating the `admin_portal` role
 
