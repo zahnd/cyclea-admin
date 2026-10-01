@@ -122,18 +122,35 @@ one at the next sign-in.
 
 Signup off, code length and expiry, the code-only email template
 (`supabase/templates/login-code.html`), Postmark SMTP and TOTP are versioned
-there and applied with:
+there and applied with `supabase config push`.
+
+Always diff first. It is read-only, and every line it prints is a change the
+push would make to **production**:
 
 ```bash
-cat supabase/.temp/project-ref          # must be mtcnwjpjbupsbkbhqbph
-POSTMARK_SMTP_TOKEN=… supabase config push
+supabase config diff --project-ref mtcnwjpjbupsbkbhqbph
 ```
 
-`config push` shows a diff and asks before changing anything. **Read every line
-of it**: it sends the whole file, so a value left at its local default (a
-`127.0.0.1` URL, signup on, 2 emails an hour) would reach production. The
-Postmark token is the server's API token (it is both SMTP username and
-password) and is never committed.
+A push changes every property the file *declares* and differs (undeclared ones
+are left alone). `supabase init` declared nearly everything with local-dev
+values, and some of those are live settings — on the first diff the pooler
+sizes, storage analytics and email confirmations would all have changed
+production. Those are now set to production's values or commented out; keep
+it that way, so the diff only ever shows what a change meant to change.
+
+Then push, with the Postmark **Server API token** (it is both SMTP username
+and password). It is read from the environment and never committed; it is
+needed on **every** push, since the file declares the SMTP settings:
+
+```bash
+read -rs "POSTMARK_SMTP_TOKEN?Postmark server token: "; export POSTMARK_SMTP_TOKEN
+supabase config push --project-ref mtcnwjpjbupsbkbhqbph
+unset POSTMARK_SMTP_TOKEN
+```
+
+Run these one line at a time, and without trailing `# comments`: zsh does not
+treat `#` as a comment at an interactive prompt, so the words are passed to the
+CLI as arguments and it prints its help instead of pushing.
 
 Postmark sends from `no-reply@cyclea.app`; the domain is verified there. It is
 a subprocessor and belongs in the privacy policy.
