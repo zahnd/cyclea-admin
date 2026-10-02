@@ -232,6 +232,10 @@ explicitly.
 - **Dates shown in client components go through `lib/format.ts`**, never
   `Intl.DateTimeFormat`: Node's and the browser's locale data differ ("Sept" vs
   "Sep"), which breaks hydration.
+- **Code fields are `CodeField`** (`components/code-field.tsx`), one plain
+  input — not shadcn's six-box `input-otp`, which Bitwarden's inline suggestion
+  cannot fill (tested 2026-10-01, input-otp#152). Server actions strip
+  whitespace before the 6-digit check.
 - A data-grid in `/portal` still shows **bucketed rows only** — the privacy
   rule above is about the grain, and a grid makes per-row display the path of
   least resistance.

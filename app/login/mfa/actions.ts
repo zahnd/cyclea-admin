@@ -59,7 +59,7 @@ async function startEnrolment(): Promise<MfaState> {
 
 async function verify(prev: MfaState, formData: FormData): Promise<MfaState> {
   if (prev.mode === "enroll-start") return prev;
-  const code = String(formData.get("code") ?? "").trim();
+  const code = String(formData.get("code") ?? "").replace(/\s+/g, "");
   if (!CODE.test(code)) {
     return { ...prev, error: "Enter the 6-digit code from your authenticator app." };
   }

@@ -52,7 +52,7 @@ async function sendCode(formData: FormData): Promise<LoginState> {
 
 async function verifyCode(formData: FormData): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const token = String(formData.get("code") ?? "").trim();
+  const token = String(formData.get("code") ?? "").replace(/\s+/g, "");
   if (!EMAIL.test(email)) return { step: "email" };
   if (!CODE.test(token)) {
     return { step: "code", email, error: "Enter the 6-digit code from the email." };

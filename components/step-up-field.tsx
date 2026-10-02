@@ -1,6 +1,6 @@
 "use client";
 
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { CodeField } from "@/components/code-field";
 import { Label } from "@/components/ui/label";
 
 /**
@@ -16,13 +16,7 @@ export function StepUpField({ show }: { show?: boolean }) {
       <p className="text-xs text-muted-foreground">
         This action changes who can administer Cyclea, so it needs a current code.
       </p>
-      <InputOTP id="totp" name="totp" maxLength={6} autoComplete="one-time-code" inputMode="numeric" pattern="^\d+$" autoFocus>
-        <InputOTPGroup>
-          {Array.from({ length: 6 }, (_, i) => (
-            <InputOTPSlot key={i} index={i} />
-          ))}
-        </InputOTPGroup>
-      </InputOTP>
+      <CodeField id="totp" name="totp" autoFocus />
     </div>
   );
 }

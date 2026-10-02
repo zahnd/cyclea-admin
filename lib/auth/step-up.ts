@@ -26,7 +26,7 @@ export async function requireRecentTotp(formData: FormData): Promise<StepUp> {
   const at = claims ? lastTotpAt(claims) : null;
   if (at !== null && Date.now() / 1000 - at < STEP_UP_SECONDS) return { ok: true };
 
-  const code = String(formData.get("totp") ?? "").trim();
+  const code = String(formData.get("totp") ?? "").replace(/\s+/g, "");
   if (!code) return { ok: false, needsCode: true };
   if (!CODE.test(code)) {
     return { ok: false, needsCode: true, error: "Enter the 6-digit code from your authenticator app." };

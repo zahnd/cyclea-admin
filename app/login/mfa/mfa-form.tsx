@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useActionState } from "react";
 
 import { Alert, AlertDescription } from "@/components/reui/alert";
+import { CodeField } from "@/components/code-field";
 import { Button } from "@/components/ui/button";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { signOut } from "@/lib/auth/sign-out";
 
@@ -42,13 +42,7 @@ export function MfaForm({ initial }: { initial: MfaState }) {
           )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="code">Code from your authenticator</Label>
-            <InputOTP id="code" name="code" maxLength={6} autoComplete="one-time-code" inputMode="numeric" pattern="^\d+$" autoFocus>
-              <InputOTPGroup>
-                {Array.from({ length: 6 }, (_, i) => (
-                  <InputOTPSlot key={i} index={i} />
-                ))}
-              </InputOTPGroup>
-            </InputOTP>
+            <CodeField id="code" name="code" autoFocus />
           </div>
           {state.error && <FormError message={state.error} />}
           <Button type="submit" name="intent" value="verify" disabled={pending}>
