@@ -48,8 +48,8 @@ The decision record for why this is a separate repo and a separate database is
   activate/deactivate, and the admin-side business record (contract date, payee
   reference, internal note), all audited. Verified in production with a
   throwaway `ZZVERIFY` creator (audit entries 4-11), then removed by hand per
-  `docs/setup.md` § *Removing a creator*. TESTCREATOR remains, deliberately
-  without an admin record, until creator codes no longer need it.
+  `docs/setup.md` § *Removing a creator*. TESTCREATOR was removed the same
+  way; there are no creators in either project now (2026-10-01).
 - **Admin management is live** (`/admin/admins`, 2026-10-01): add, revoke
   (migration 0004: never yourself, never the last admin, race-safe), reset
   another admin's authenticator, and a read-only **audit log** page; admin-rights
@@ -78,7 +78,9 @@ The decision record for why this is a separate repo and a separate database is
   state (No contract / Sent / Signed / Ended, with dates) and a link to it in
   **Skribble**, where the contract and the bank details in it stay; payout
   method Bank or Wise. Manual, audited. `docs/payouts.md` § *Contracts and
-  payee details*. Built, **not live** until 0007 is applied.
+  payee details*. **Live** (2026-10-01), verified with a throwaway
+  `ZZCONTRACT` (audit 21-27; 28 its removal). The live test found that a
+  refused save emptied the typed fields — those forms are controlled now.
 - **Next step**: not chosen yet. Candidates: a revenue overview once production
   purchases exist, CI for lint/typecheck/build and the Docker migration tests,
   and payouts once `docs/payouts.md` is answered.
