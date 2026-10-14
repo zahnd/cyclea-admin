@@ -86,7 +86,8 @@ The decision record for why this is a separate repo and a separate database is
   `admin_portal` reads the real row through the view and is refused
   `app_feedback`, `cycles` and `daily_logs` with `42501`). Top bar: Creators · Feedback · Users · Audit log; the Feedback
   section has one page per kind — **App feedback** (`/admin/feedback/app`)
-  now, Content feedback later — plus **Add feedback** (`/admin/feedback/new`).
+  and **Content feedback** (`/admin/feedback/content`) — plus **Add feedback**
+  (`/admin/feedback/new`).
   App feedback merges two sources: what users sent from the app, through the
   app view `app_feedback_admin` (cyclea-app 0066 — no user id, no screenshot
   path), and **manual entries** for feedback that came via WhatsApp, in person
@@ -105,11 +106,21 @@ The decision record for why this is a separate repo and a separate database is
   all of it: app feedback and manual feedback under Render, manual feedback
   and its image under Communications, Slack for reports and content ratings
   only.
+- **Content feedback in the admin** (2026-10-15, **built, not yet live**):
+  thumbs and notes on CMS content through the app view
+  `content_feedback_admin` (cyclea-app 0067 — no user id; `content_title` is
+  the title stamped by `content_feedback_sync`, `note_changed_at` set by a
+  trigger). Two views: **All ratings** and **By content**, grouped by
+  (kind, Directus id), never by title, with every title an item had. Only
+  ratings **with a note** are triaged (`feedback_triage` kind `content`, 0010)
+  and count as New; a changed note reopens a triaged one, a flipped thumb does
+  not. "Open in Directus" links to the live item. The Directus mirror stays;
+  the sync function's Slack ping goes once this is live.
 - **Next steps, in order** (each planned on its own): the admin's **MCP
   endpoint** (auth first, then feedback tools); **per-admin notification
-  settings** (replacing the New badge as the signal); **content feedback** into
-  the admin (its Slack ping goes, the Directus mirror stays); **user reports**
-  into the admin with a notification (Apple 1.2), then Slack removed entirely.
+  settings** (replacing the New badge as the signal); **user reports** into
+  the admin with a notification (Apple 1.2), then Slack removed entirely.
+  Manual entries about content wait until asked for.
   Still open besides: a revenue overview once production purchases exist, CI
   for lint/typecheck/build and the Docker migration tests, and payouts once
   `docs/payouts.md` is answered.
@@ -140,11 +151,12 @@ and this app runs on a public web host.
   Render's environment, or in anyone's `.env`. If a task seems to need one, the
   answer is a new view in the app project, not a wider credential.
 - The app project is reached **only** as the `admin_portal` Postgres role, whose
-  grants are `SELECT` on three views (`creator_revenue_events`,
-  `creator_referral_counts`, `app_feedback_admin`) and `INSERT/UPDATE` on
-  `public.creators`. Postgres enforces that; our code is not what makes it safe.
-  `app_feedback_admin.message` is user-typed free text and may mention health
-  details — accepted knowingly; never copy it into this project.
+  grants are `SELECT` on four views (`creator_revenue_events`,
+  `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`)
+  and `INSERT/UPDATE` on `public.creators`. Postgres enforces that; our code is
+  not what makes it safe. `app_feedback_admin.message` and
+  `content_feedback_admin.note` are user-typed free text and may mention health
+  details — accepted knowingly; never copy them into this project.
 - **No `NEXT_PUBLIC_` variables at all.** The prefix ships a value to every
   visitor; every Supabase call here runs on the server, so nothing needs one —
   and for the app project it would be a breach.

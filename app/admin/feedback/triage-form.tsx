@@ -18,7 +18,7 @@ import {
   type FeedbackStatus,
 } from "@/lib/feedback/validation";
 
-import { updateTriage, type FormState } from "../actions";
+import { updateTriage, type FormState } from "./actions";
 
 const STATUS_ITEMS = FEEDBACK_STATUSES.map((value) => ({ value, label: FEEDBACK_STATUS_LABELS[value] }));
 
@@ -78,8 +78,8 @@ export function TriageForm({
           rows={4}
         />
         <p className="text-xs text-muted-foreground">
-          What we did or decided — never a quote of what the user wrote. Feedback from the app is deleted with its
-          account; this note is not. Changes are logged, the text itself is not.
+          What we did or decided — never a quote of what the user wrote. Feedback from the app and content ratings
+          are deleted with their account; this note is not. Changes are logged, the text itself is not.
         </p>
       </div>
       <div className="flex flex-col gap-2">

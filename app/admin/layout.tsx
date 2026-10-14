@@ -2,22 +2,22 @@ import { cookies } from "next/headers";
 
 import { AdminShell } from "@/components/admin-shell/admin-shell";
 import { requireAdmin } from "@/lib/auth/dal";
-import { countNewAppFeedback } from "@/lib/feedback/data";
+import { countNewFeedback } from "@/lib/feedback/count";
 
 /** How long the shell waits for the New count before rendering without it. */
 const COUNT_TIMEOUT_MS = 2000;
 
 /**
- * Untriaged feedback of every kind (app feedback only, so far), for the badge
- * on the Feedback section -- the signal that something came in, until
- * notifications exist. Fail-soft: every admin
+ * Untriaged feedback of every kind (app feedback, manual entries, content
+ * ratings with a note), for the badge on the Feedback section -- the signal
+ * that something came in, until notifications exist. Fail-soft: every admin
  * page renders through this layout, and none of them should go down or wait
  * long because the app project is slow or unreachable.
  */
 async function newFeedbackCount(): Promise<number | null> {
   try {
     return await Promise.race([
-      countNewAppFeedback(),
+      countNewFeedback(),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), COUNT_TIMEOUT_MS)),
     ]);
   } catch (error) {

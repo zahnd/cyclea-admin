@@ -3,11 +3,11 @@
 
 /**
  * Where a feedback item is stored, which is what a triage row points into
- * (feedback_triage.kind, migration 0008): 'app' = sent from the app (app
- * project), 'manual' = entered here by an admin. Content feedback adds its
- * own kind with its own task.
+ * (feedback_triage.kind, migrations 0008 and 0010): 'app' = sent from the app
+ * (app project), 'manual' = entered here by an admin, 'content' = a rating of
+ * CMS content (app project, content_feedback).
  */
-export const FEEDBACK_KINDS = ["app", "manual"] as const;
+export const FEEDBACK_KINDS = ["app", "manual", "content"] as const;
 export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
 
 export function isFeedbackKind(value: string): value is FeedbackKind {
@@ -99,4 +99,59 @@ export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 
 export function isHttpsUrl(value: string): boolean {
   return value.length <= LINK_MAX && /^https:\/\/\S+$/.test(value);
+}
+
+/**
+ * What a content rating is about (content_feedback_kind_check, app migration
+ * 0038). Journal prompts have no detail page, so no rating.
+ */
+export const CONTENT_KINDS = ["article", "yoga_class", "meditation", "recipe", "herbal_support"] as const;
+export type ContentKind = (typeof CONTENT_KINDS)[number];
+
+export const CONTENT_KIND_LABELS: Record<ContentKind, string> = {
+  article: "Article",
+  yoga_class: "Yoga class",
+  meditation: "Meditation",
+  recipe: "Recipe",
+  herbal_support: "Herbal support",
+};
+
+export function isContentKind(value: string): value is ContentKind {
+  return (CONTENT_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * The Directus collection per kind -- the same map as KINDS in the app's
+ * content_feedback_sync, where the plural is irregular on purpose. A wrong
+ * entry only breaks the "Open in Directus" link.
+ */
+const DIRECTUS_COLLECTIONS: Record<ContentKind, string> = {
+  article: "articles",
+  yoga_class: "yoga_classes",
+  meditation: "meditations",
+  recipe: "recipes",
+  herbal_support: "herbal_support",
+};
+
+/** The item in the Directus editor; opening it needs a Directus login. */
+export function directusItemUrl(kind: ContentKind, directusId: number): string {
+  return `https://cyclea.directus.app/admin/content/${DIRECTUS_COLLECTIONS[kind]}/${directusId}`;
+}
+
+/** The title as it was when rated, or "Article #4" when the sync had none. */
+export function contentLabel(kind: ContentKind, directusId: number, title: string | null): string {
+  return title ?? `${CONTENT_KIND_LABELS[kind]} #${directusId}`;
+}
+
+/**
+ * Ratings are stored 1-5 (app migration 0038): the app writes 1 (thumb down)
+ * or 5 (thumb up); the range is open for a later star rating.
+ */
+export const RATING_DOWN = 1;
+export const RATING_UP = 5;
+
+export function ratingLabel(rating: number): string {
+  if (rating === RATING_UP) return "Thumbs up";
+  if (rating === RATING_DOWN) return "Thumbs down";
+  return `Rating ${rating}`;
 }

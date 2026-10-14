@@ -21,7 +21,7 @@ import type {
 //     this project (0008): no identity, only the channel.
 //
 // What we decided about either is feedback_triage (0008), keyed by kind and
-// id; no row means new. Content feedback gets its own readers beside these;
+// id; no row means new. Content feedback has its own readers (content.ts);
 // triage is shared. The later MCP tools read and write through these
 // functions too.
 

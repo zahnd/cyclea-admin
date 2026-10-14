@@ -2,17 +2,19 @@ import { PageHeader } from "@/components/page-header";
 import { AUDIT_PAGE_LIMIT, listAuditLog, listUsers } from "@/lib/users/data";
 import { requireAdmin } from "@/lib/auth/dal";
 import { listAppCreators } from "@/lib/creators/data";
+import { listContentFeedbackIds } from "@/lib/feedback/content";
 import { listAppFeedbackIds } from "@/lib/feedback/data";
 
 import { AuditGrid } from "./audit-grid";
 
 export default async function AuditLogPage() {
   await requireAdmin();
-  const [entries, users, creators, feedbackIds] = await Promise.all([
+  const [entries, users, creators, feedbackIds, contentIds] = await Promise.all([
     listAuditLog(),
     listUsers(),
     listAppCreators(),
     listAppFeedbackIds(),
+    listContentFeedbackIds(),
   ]);
   // Link only to pages that exist: a deleted account, removed creator or
   // feedback deleted with its account has none.
@@ -20,6 +22,7 @@ export default async function AuditLogPage() {
     ...users.map((u) => u.userId),
     ...creators.map((c) => c.id),
     ...feedbackIds.map((f) => f.id),
+    ...contentIds,
   ]);
 
   return (

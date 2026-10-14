@@ -51,6 +51,7 @@ function targetHref(row: AuditGridRow): string | null {
   if (row.targetType === "app_feedback" || row.targetType === "manual_feedback") {
     return `/admin/feedback/app/${row.targetId}`;
   }
+  if (row.targetType === "content_feedback") return `/admin/feedback/content/${row.targetId}`;
   return null;
 }
 

@@ -36,7 +36,7 @@ Three credentials, and the second one is the whole design:
 | credential | env var | reaches |
 |---|---|---|
 | admin project secret key (role `service_role`) | `SUPABASE_SECRET_KEY` | payouts, rates, audit log, creator logins — no app data at all |
-| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | three views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin` — and writes to `public.creators`. Nothing else. |
+| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | four views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin` — and writes to `public.creators`. Nothing else. |
 | app project service role | — | **never exists here.** Edge Functions only, and it never leaves Supabase. |
 
 `admin_portal` is a plain login role with hand-written grants. Postgres enforces
@@ -98,6 +98,17 @@ privacy policy under Render; the role still reaches none of the health tables.
 Our triage of it — status, note, link — lives in this project
 (`feedback_triage`, 0008) and never copies the message, so deleting an app
 account still removes the text everywhere.
+
+**`content_feedback_admin` (0067)** is content ratings for
+`/admin/feedback/content`: a thumb, an optional note (free text again, accepted
+the same way), the item's kind and Directus id, no `user_id`. This host has no
+Directus credential, so the item's name comes from `content_title`, which the
+app's `content_feedback_sync` stamps when it mirrors a rating into Directus —
+the title at rating time; the summary groups by (kind, Directus id) and lists
+every title an item had, and "Open in Directus" opens the live item.
+`note_changed_at`, set by a trigger, is what reopens a triaged rating whose
+note changed; `updated_at` moves with sync stamps and re-tapped thumbs too.
+Only ratings with a note are triaged (`feedback_triage`, kind `content`, 0010).
 
 Feedback that reaches us outside the app (WhatsApp, in person, email) is
 entered by an admin into **`manual_feedback`** (0008), in this project, and

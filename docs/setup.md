@@ -225,8 +225,9 @@ first, or re-run the policy statement afterwards.
 
 The views added since are granted by their own migrations in the app repo,
 each skipped with a notice where the role does not exist yet:
-`creator_referral_counts` (0059) and `app_feedback_admin` (0066). On a fresh
-database, re-run those `GRANT SELECT` statements after creating the role.
+`creator_referral_counts` (0059), `app_feedback_admin` (0066) and
+`content_feedback_admin` (0067). On a fresh database, re-run those
+`GRANT SELECT` statements after creating the role.
 
 Keep that list exactly this short. When something new is needed, add **a view in
 the app project** and grant that, rather than widening the role to a base table.

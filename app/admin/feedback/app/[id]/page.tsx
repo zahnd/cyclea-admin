@@ -12,7 +12,7 @@ import { formatDateLong, formatDateTimeUtc } from "@/lib/format";
 
 import { FeedbackCategoryBadge, FeedbackStatusBadge } from "../feedback-grid";
 import { ManualForm } from "../manual-form";
-import { TriageForm } from "./triage-form";
+import { TriageForm } from "../../triage-form";
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (

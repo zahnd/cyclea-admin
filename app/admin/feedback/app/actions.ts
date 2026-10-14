@@ -5,63 +5,23 @@ import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/dal";
 import { isIsoDate, isUuid } from "@/lib/creators/validation";
-import { saveManualFeedback, setFeedbackTriage } from "@/lib/feedback/data";
+import { saveManualFeedback } from "@/lib/feedback/data";
 import { ImageRejected, removeManualImage, sanitizeImage, setManualImage } from "@/lib/feedback/image";
 import {
   APP_VERSION_MAX,
   isFeedbackCategory,
-  isFeedbackKind,
-  isFeedbackStatus,
-  isHttpsUrl,
   isManualSource,
   isPlatform,
-  LINK_MAX,
   MESSAGE_MAX,
-  NOTE_MAX,
 } from "@/lib/feedback/validation";
 
-export type FormState = { error?: string; ok?: string };
+import type { FormState } from "../actions";
+
+// The form state is shared with the triage form (../actions.ts).
+export type { FormState };
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-/**
- * Status, note and link of one item. No step-up code: this is not a role or
- * account action, and requireAdmin() already demands an authenticator check
- * from the last 12 hours.
- */
-export async function updateTriage(_prev: FormState, formData: FormData): Promise<FormState> {
-  // Every server action checks for itself: a POST does not pass the layout.
-  const admin = await requireAdmin();
-
-  const id = String(formData.get("id") ?? "");
-  const kind = String(formData.get("kind") ?? "");
-  if (!isUuid(id) || !isFeedbackKind(kind)) throw new Error("Invalid feedback reference.");
-
-  const status = String(formData.get("status") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-  const link = String(formData.get("link") ?? "").trim();
-
-  if (!isFeedbackStatus(status)) return { error: "Choose a status from the list." };
-  if (note.length > NOTE_MAX) return { error: `Keep the note under ${NOTE_MAX} characters.` };
-  if (link && !isHttpsUrl(link)) {
-    return { error: `The link must start with https:// and be at most ${LINK_MAX} characters.` };
-  }
-
-  let changed: boolean;
-  try {
-    changed = await setFeedbackTriage({ kind, feedbackId: id, status, note, link }, { id: admin.userId, label: admin.email });
-  } catch (error) {
-    console.error(`[feedback] triage ${kind} ${id} failed: ${message(error)}`);
-    return { error: "Could not save. Nothing was changed." };
-  }
-
-  revalidatePath(`/admin/feedback/app/${id}`);
-  revalidatePath("/admin/feedback/app");
-  // The layout's New count, on every admin page.
-  revalidatePath("/admin", "layout");
-  return { ok: changed ? "Saved." : "No change." };
 }
 
 /**
