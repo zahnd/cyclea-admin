@@ -247,3 +247,20 @@ explicitly.
 - Commit to `main` by default; no self-made feature branches unless asked.
 - Never write to Directus from here. The CMS is the app's, and changes there are
   made by hand by the user.
+
+## Memory: local and Basic Memory, kept in sync
+
+Memory lives in two places with the same content: Claude Code's local memory
+for this repo, and the **Basic Memory** project `cyclea`, folder
+**`Cyclea Admin`** (one note per memory, same title, plus the overview note
+`Cyclea Admin` that lists them).
+
+- Every memory written, changed or deleted locally gets the same change in
+  `Cyclea Admin` in the same session, and the other way round. Update the
+  overview note's list and append a dated line to the project's root `log`
+  note when a note is added or removed.
+- Before relying on a memory, check whether the Basic Memory copy is newer
+  (it may have been edited from another device or session) and bring the
+  local copy up to date.
+- The same rule as for local memory applies: nothing derivable from the repo,
+  no secrets, no app user data.
