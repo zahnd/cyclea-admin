@@ -81,8 +81,10 @@ The decision record for why this is a separate repo and a separate database is
   payee details*. **Live** (2026-10-01), verified with a throwaway
   `ZZCONTRACT` (audit 21-27; 28 its removal). The live test found that a
   refused save emptied the typed fields — those forms are controlled now.
-- **Feedback moves from Slack into the admin** (2026-10-14, **built, not yet
-  live**). Top bar: Creators · Feedback · Users · Audit log; the Feedback
+- **Feedback moves from Slack into the admin** (**live** 2026-10-14:
+  tested with a TestFlight feedback, triage and manual entries with images;
+  `admin_portal` reads the real row through the view and is refused
+  `app_feedback`, `cycles` and `daily_logs` with `42501`). Top bar: Creators · Feedback · Users · Audit log; the Feedback
   section has one page per kind — **App feedback** (`/admin/feedback/app`)
   now, Content feedback later — plus **Add feedback** (`/admin/feedback/new`).
   App feedback merges two sources: what users sent from the app, through the
