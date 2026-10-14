@@ -106,7 +106,9 @@ The decision record for why this is a separate repo and a separate database is
   all of it: app feedback and manual feedback under Render, manual feedback
   and its image under Communications, Slack for reports and content ratings
   only.
-- **Content feedback in the admin** (2026-10-15, **built, not yet live**):
+- **Content feedback in the admin** (**live** 2026-10-15: tested with two
+  TestFlight ratings, titles stamped, Directus mirror intact, triage audited;
+  `admin_portal` reads the real rows and is refused `content_feedback`):
   thumbs and notes on CMS content through the app view
   `content_feedback_admin` (cyclea-app 0067 — no user id; `content_title` is
   the title stamped by `content_feedback_sync`, `note_changed_at` set by a
@@ -115,7 +117,7 @@ The decision record for why this is a separate repo and a separate database is
   ratings **with a note** are triaged (`feedback_triage` kind `content`, 0010)
   and count as New; a changed note reopens a triaged one, a flipped thumb does
   not. "Open in Directus" links to the live item. The Directus mirror stays;
-  the sync function's Slack ping goes once this is live.
+  the sync function no longer posts to Slack (cyclea-app `a582b0b`).
 - **Next steps, in order** (each planned on its own): the admin's **MCP
   endpoint** (auth first, then feedback tools); **per-admin notification
   settings** (replacing the New badge as the signal); **user reports** into
