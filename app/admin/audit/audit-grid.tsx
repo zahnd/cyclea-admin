@@ -47,6 +47,10 @@ function targetHref(row: AuditGridRow): string | null {
   if (row.targetType === "creator") return `/admin/creators/${row.targetId}`;
   // Admin actions and account deletion both target a login.
   if (row.targetType === "admin" || row.targetType === "user") return `/admin/users/${row.targetId}`;
+  // Feedback sent from the app and manual entries share one page per item.
+  if (row.targetType === "app_feedback" || row.targetType === "manual_feedback") {
+    return `/admin/feedback/app/${row.targetId}`;
+  }
   return null;
 }
 

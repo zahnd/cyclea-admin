@@ -36,7 +36,7 @@ Three credentials, and the second one is the whole design:
 | credential | env var | reaches |
 |---|---|---|
 | admin project secret key (role `service_role`) | `SUPABASE_SECRET_KEY` | payouts, rates, audit log, creator logins — no app data at all |
-| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | `creator_revenue_events`, and writes to `public.creators`. Nothing else. |
+| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | three views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin` — and writes to `public.creators`. Nothing else. |
 | app project service role | — | **never exists here.** Edge Functions only, and it never leaves Supabase. |
 
 `admin_portal` is a plain login role with hand-written grants. Postgres enforces
@@ -62,8 +62,9 @@ Two consequences that are easy to violate by accident:
 
 ## The app-side read surface
 
-One view, `public.creator_revenue_events` (app project, migration 0056). Its
-shape carries three rules that code here must respect:
+Three views in the app project, each granted to `admin_portal` alone. The
+first, `public.creator_revenue_events` (migration 0056), carries three rules
+that code here must respect:
 
 **No `user_id`, by design.** A creator must never learn *which* accounts they
 referred. Referred users are app users with cycle data, and a creator handed a
@@ -82,6 +83,28 @@ from `price_in_purchased_currency` + `currency`.**
 
 **`commission_percentage` and `tax_percentage` are 0–1 fractions.** Play's 15%
 arrives as `0.150000`. Reading it as a percent understates the store's cut 100×.
+
+**`creator_referral_counts` (0059)** is referrals per creator per month —
+aggregates only, for the portal and the creator pages.
+
+**`app_feedback_admin` (0066)** is in-app feedback for `/admin/feedback`. It
+leaves out `user_id` (nobody here needs to know who wrote it) and the
+screenshot path: screenshots can show cycle data, so they stay in the app
+project's private bucket and the page links to the Supabase dashboard, behind a
+Supabase login. What it does carry is `message`, **free text the user typed**,
+which can mention health details. That is the one place this host reads text a
+user wrote, accepted knowingly (it went to Slack before) and named in the
+privacy policy under Render; the role still reaches none of the health tables.
+Our triage of it — status, note, link — lives in this project
+(`feedback_triage`, 0008) and never copies the message, so deleting an app
+account still removes the text everywhere.
+
+Feedback that reaches us outside the app (WhatsApp, in person, email) is
+entered by an admin into **`manual_feedback`** (0008), in this project, and
+shown in the same list. It records the channel and never who said it — no
+name, number or handle — so there is nothing to correlate and nothing to
+delete on request. Its text is ours to keep; the audit log still records only
+that it changed.
 
 ## Money rules
 

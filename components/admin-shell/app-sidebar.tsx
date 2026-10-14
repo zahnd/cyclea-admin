@@ -10,6 +10,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { currentSection, sections } from "@/lib/nav";
 
-export function AppSidebar() {
+export function AppSidebar({ sectionCounts }: { sectionCounts: Record<string, number> }) {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const section = currentSection(pathname);
@@ -43,6 +44,7 @@ export function AppSidebar() {
                       <s.icon />
                       <span>{s.title}</span>
                     </SidebarMenuButton>
+                    {(sectionCounts[s.href] ?? 0) > 0 && <SidebarMenuBadge>{sectionCounts[s.href]}</SidebarMenuBadge>}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

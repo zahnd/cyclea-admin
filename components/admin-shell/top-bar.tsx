@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 
+import { Badge } from "@/components/reui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ import { signOut } from "@/lib/auth/sign-out";
 import { cn } from "@/lib/utils";
 import { currentSection, sections } from "@/lib/nav";
 
-export function TopBar({ email }: { email: string }) {
+export function TopBar({ email, sectionCounts }: { email: string; sectionCounts: Record<string, number> }) {
   const pathname = usePathname();
   const active = currentSection(pathname);
   const [signingOut, startSignOut] = useTransition();
@@ -40,17 +41,24 @@ export function TopBar({ email }: { email: string }) {
         <nav aria-label="Sections" className="ml-4 hidden items-center gap-1 md:flex">
           {sections.map((section) => {
             const isActive = section === active;
+            const count = sectionCounts[section.href] ?? 0;
             return (
               <Link
                 key={section.href}
                 href={section.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
                   isActive ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
                 {section.title}
+                {count > 0 && (
+                  <Badge variant="info-light" size="sm" radius="full">
+                    {count}
+                    <span className="sr-only"> new</span>
+                  </Badge>
+                )}
               </Link>
             );
           })}

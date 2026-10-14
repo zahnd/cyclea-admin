@@ -8,14 +8,17 @@ import { TopBar } from "./top-bar";
 // The signed-in frame: a sticky top bar for sections and the account, the
 // current section's pages in a sidebar below it (an icon rail when collapsed,
 // a drawer on phones). Knows nothing about auth -- the admin layout checks
-// that and passes the email in.
+// that and passes the email in, and the counts shown next to sections.
 export function AdminShell({
   email,
   defaultOpen,
+  sectionCounts,
   children,
 }: {
   email: string;
   defaultOpen: boolean;
+  /** Items waiting in a section, keyed by its href; absent or 0 shows nothing. */
+  sectionCounts: Record<string, number>;
   children: React.ReactNode;
 }) {
   return (
@@ -28,9 +31,9 @@ export function AdminShell({
         Skip to content
       </a>
       <SidebarProvider defaultOpen={defaultOpen} className="flex flex-col">
-        <TopBar email={email} />
+        <TopBar email={email} sectionCounts={sectionCounts} />
         <div className="flex flex-1">
-          <AppSidebar />
+          <AppSidebar sectionCounts={sectionCounts} />
           <SidebarInset id="content" className="min-w-0 p-4 sm:p-6">
             {children}
           </SidebarInset>

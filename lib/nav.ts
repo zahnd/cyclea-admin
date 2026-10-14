@@ -1,6 +1,8 @@
 import {
   ListIcon,
+  MessageSquareIcon,
   PlusIcon,
+  SmartphoneIcon,
   ScrollTextIcon,
   ShieldIcon,
   UserPlusIcon,
@@ -48,6 +50,27 @@ export const sections: NavSection[] = [
         href: "/admin/creators/new",
         icon: PlusIcon,
         match: under("/admin/creators/new"),
+      },
+    ],
+  },
+  {
+    title: "Feedback",
+    href: "/admin/feedback",
+    icon: MessageSquareIcon,
+    // One page per kind of feedback; content feedback joins as the second.
+    pages: [
+      {
+        title: "App feedback",
+        href: "/admin/feedback/app",
+        icon: SmartphoneIcon,
+        // An item's own page belongs here too.
+        match: under("/admin/feedback/app"),
+      },
+      {
+        title: "Add feedback",
+        href: "/admin/feedback/new",
+        icon: PlusIcon,
+        match: under("/admin/feedback/new"),
       },
     ],
   },

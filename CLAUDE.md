@@ -81,9 +81,27 @@ The decision record for why this is a separate repo and a separate database is
   payee details*. **Live** (2026-10-01), verified with a throwaway
   `ZZCONTRACT` (audit 21-27; 28 its removal). The live test found that a
   refused save emptied the typed fields — those forms are controlled now.
-- **Next step**: not chosen yet. Candidates: a revenue overview once production
-  purchases exist, CI for lint/typecheck/build and the Docker migration tests,
-  and payouts once `docs/payouts.md` is answered.
+- **Feedback moves from Slack into the admin** (2026-10-14, **built, not yet
+  live**). Top bar: Creators · Feedback · Users · Audit log; the Feedback
+  section has one page per kind — **App feedback** (`/admin/feedback/app`)
+  now, Content feedback later — plus **Add feedback** (`/admin/feedback/new`).
+  App feedback merges two sources: what users sent from the app, through the
+  app view `app_feedback_admin` (cyclea-app 0066 — no user id, no screenshot
+  path), and **manual entries** for feedback that came via WhatsApp, in person
+  or email (`manual_feedback`, 0008 — the channel only, never who). Triage per
+  item (New / In progress / Done / Won't fix, note, link) is `feedback_triage`
+  (0008, keyed by kind + id, audited, never an app user's message). A New
+  count sits on the Feedback section. Screenshots open in the Supabase
+  dashboard only. The `app_feedback` Edge Function loses its Slack ping once
+  this is live; `lib/feedback/` is what the MCP tools will call.
+- **Next steps, in order** (each planned on its own): the admin's **MCP
+  endpoint** (auth first, then feedback tools); **per-admin notification
+  settings** (replacing the New badge as the signal); **content feedback** into
+  the admin (its Slack ping goes, the Directus mirror stays); **user reports**
+  into the admin with a notification (Apple 1.2), then Slack removed entirely.
+  Still open besides: a revenue overview once production purchases exist, CI
+  for lint/typecheck/build and the Docker migration tests, and payouts once
+  `docs/payouts.md` is answered.
 - **Nothing is decided about payout amounts.** `docs/payouts.md` lists the four
   open questions; all block the first payout, none blocks building.
 
@@ -111,8 +129,11 @@ and this app runs on a public web host.
   Render's environment, or in anyone's `.env`. If a task seems to need one, the
   answer is a new view in the app project, not a wider credential.
 - The app project is reached **only** as the `admin_portal` Postgres role, whose
-  grants are `SELECT` on `public.creator_revenue_events` and `INSERT/UPDATE` on
+  grants are `SELECT` on three views (`creator_revenue_events`,
+  `creator_referral_counts`, `app_feedback_admin`) and `INSERT/UPDATE` on
   `public.creators`. Postgres enforces that; our code is not what makes it safe.
+  `app_feedback_admin.message` is user-typed free text and may mention health
+  details — accepted knowingly; never copy it into this project.
 - **No `NEXT_PUBLIC_` variables at all.** The prefix ships a value to every
   visitor; every Supabase call here runs on the server, so nothing needs one —
   and for the app project it would be a breach.
@@ -227,6 +248,9 @@ explicitly.
   section or page there, and only for routes that exist. Every page starts with
   **`PageHeader`** (`components/page-header.tsx`): explicit breadcrumbs, title,
   description, actions.
+- **Icons are lucide** (shadcn's and ReUI's default), like the whole shell.
+  The global Font Awesome rule is for projects that use Font Awesome (the
+  Flutter app); it does not apply here.
 - **Dark mode follows the OS** (`prefers-color-scheme`); there is no `.dark`
   class and no switch.
 - **Dates shown in client components go through `lib/format.ts`**, never
