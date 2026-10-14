@@ -91,9 +91,18 @@ The decision record for why this is a separate repo and a separate database is
   or email (`manual_feedback`, 0008 — the channel only, never who). Triage per
   item (New / In progress / Done / Won't fix, note, link) is `feedback_triage`
   (0008, keyed by kind + id, audited, never an app user's message). A New
-  count sits on the Feedback section. Screenshots open in the Supabase
-  dashboard only. The `app_feedback` Edge Function loses its Slack ping once
-  this is live; `lib/feedback/` is what the MCP tools will call.
+  count sits on the Feedback section. App screenshots open in the Supabase
+  dashboard only. A manual entry can carry one image (0009, applied and
+  verified 2026-10-14): private bucket `manual-feedback` here, re-encoded to WebP so
+  photo metadata never lands, shown only via a `requireAdmin()` route, with a
+  no-personal-data notice on the form. The notice is the only safeguard
+  against cycle data in a picture; accepted knowingly (2026-10-14), because
+  only the user adds manual entries. The `app_feedback` Edge Function loses
+  its Slack ping once this is live; `lib/feedback/` is what the MCP tools will
+  call. **The privacy policy needs one more change**, made with the Slack
+  removal: the Slack bullet and retention sentence, and that feedback reaching
+  us by WhatsApp, in person or email (with an image, if any) is kept in the
+  admin.
 - **Next steps, in order** (each planned on its own): the admin's **MCP
   endpoint** (auth first, then feedback tools); **per-admin notification
   settings** (replacing the New badge as the signal); **content feedback** into

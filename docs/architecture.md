@@ -106,6 +106,25 @@ name, number or handle — so there is nothing to correlate and nothing to
 delete on request. Its text is ours to keep; the audit log still records only
 that it changed.
 
+A manual entry can carry **one image** (0009) — a screenshot someone sent, a
+photo of the bug. It sits in this project's private Storage bucket
+`manual-feedback` (no `storage.objects` policies, so only this server's
+secret key reaches it) and is shown only through
+`/admin/feedback/app/<id>/image`, a route handler that calls
+`requireAdmin()` and answers `no-store` — never a public or signed URL. Every
+upload is decoded and **re-encoded to WebP** by sharp (`lib/feedback/image.ts`):
+that drops EXIF/XMP, so a phone photo's GPS position and camera never get
+stored, and only JPEG, PNG, WebP and GIF are accepted, by content (SVG is
+refused). What the picture *shows* is the admin's call: the form says no names,
+faces, numbers, chat headers or cycle data, crop or blur first. That notice is
+the only safeguard: a screenshot of the app can show cycle data, which is why
+the app's own screenshots never leave Supabase. Accepted knowingly
+(2026-10-14) because one person adds every manual entry; revisit it if that
+changes. The object is
+`<entry id>/<random uuid>.webp`, replaced under a new name; the audit log
+records only added / replaced / removed. Server actions accept 6 MB bodies
+(`next.config.ts`) for the 5 MB upload limit.
+
 ## Money rules
 
 **The view reports facts, not totals.** Rows are transactions as the store

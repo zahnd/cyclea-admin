@@ -2,6 +2,7 @@ import { ExternalLinkIcon } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription } from "@/components/reui/alert";
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from "@/components/reui/frame";
 import { requireAdmin } from "@/lib/auth/dal";
 import { isUuid } from "@/lib/creators/validation";
@@ -26,9 +27,11 @@ function received(item: Feedback): string {
   return item.dateOnly ? formatDateLong(item.receivedAt) : formatDateTimeUtc(item.receivedAt);
 }
 
-export default async function FeedbackItemPage({ params }: PageProps<"/admin/feedback/app/[id]">) {
+export default async function FeedbackItemPage({ params, searchParams }: PageProps<"/admin/feedback/app/[id]">) {
   await requireAdmin();
   const { id } = await params;
+  // Set by saveManual when a new entry was saved but its image was not stored.
+  const imageFailed = (await searchParams).image === "failed";
   if (!isUuid(id)) notFound();
 
   // Feedback sent from the app is gone once its account was deleted: it
@@ -51,6 +54,14 @@ export default async function FeedbackItemPage({ params }: PageProps<"/admin/fee
         }
       />
 
+      {imageFailed && !item.hasImage && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            The entry was saved, but its image could not be stored. Add it again under Edit entry.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Frame>
         <FrameHeader>
           <FrameTitle>{manual ? `Via ${FEEDBACK_SOURCE_LABELS[item.source]}` : "Sent from the app"}</FrameTitle>
@@ -62,6 +73,16 @@ export default async function FeedbackItemPage({ params }: PageProps<"/admin/fee
         </FrameHeader>
         <FramePanel className="flex flex-col gap-6">
           <p className="text-sm whitespace-pre-wrap">{item.message}</p>
+          {item.hasImage && (
+            <a href={`/admin/feedback/app/${item.id}/image?v=${item.imageVersion}`} target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a private image behind requireAdmin(); next/image would cache it */}
+              <img
+                src={`/admin/feedback/app/${item.id}/image?v=${item.imageVersion}`}
+                alt="Image attached to this feedback"
+                className="max-h-96 max-w-full rounded-md border object-contain"
+              />
+            </a>
+          )}
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Fact label="App version">{item.appVersion}</Fact>
             <Fact label="Device">{deviceLabel(item.platform, item.osVersion)}</Fact>
@@ -125,6 +146,7 @@ export default async function FeedbackItemPage({ params }: PageProps<"/admin/fee
                 receivedOn: item.receivedAt.slice(0, 10),
                 appVersion: item.appVersion,
                 platform: item.platform && isPlatform(item.platform) ? item.platform : null,
+                imageVersion: item.imageVersion,
               }}
             />
           </FramePanel>

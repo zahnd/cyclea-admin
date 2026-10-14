@@ -89,6 +89,14 @@ export const LINK_MAX = 500;
 export const MESSAGE_MAX = 4000;
 export const APP_VERSION_MAX = 64;
 
+/**
+ * An image on a manual entry (migration 0009): what the form accepts before
+ * the server re-encodes it. The bucket's own limit is the same 5 MB, and
+ * next.config.ts lets a server action body be a little larger than this.
+ */
+export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+
 export function isHttpsUrl(value: string): boolean {
   return value.length <= LINK_MAX && /^https:\/\/\S+$/.test(value);
 }

@@ -23,7 +23,8 @@ export default async function AppFeedbackPage() {
     appVersion: item.appVersion,
     device: deviceLabel(item.platform, item.osVersion),
     screen: item.screen,
-    hasScreenshot: item.hasScreenshot,
+    // The list marks both the same way: an app screenshot (in Supabase) or a manual entry's image.
+    hasScreenshot: item.hasScreenshot || item.hasImage,
     status: item.status,
   }));
 
@@ -32,7 +33,7 @@ export default async function AppFeedbackPage() {
       <PageHeader
         crumbs={[{ label: "Feedback" }, { label: "App feedback" }]}
         title="App feedback"
-        description="Everything about the app: what people sent from it (shake, or Settings → Send feedback) and what reached us another way. Who it came from is never shown; screenshots stay in Supabase."
+        description="Everything about the app: what people sent from it (shake, or Settings → Send feedback) and what reached us another way. Who it came from is never shown; app screenshots stay in Supabase."
         actions={
           <Button nativeButton={false} render={<Link href="/admin/feedback/new" />}>
             <PlusIcon />

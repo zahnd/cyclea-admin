@@ -53,6 +53,10 @@ export type Feedback = {
   /** The tab the user was on, e.g. `planner`. Only from the app. */
   screen: string | null;
   hasScreenshot: boolean;
+  /** A manual entry's image (0009), shown through /admin/feedback/app/<id>/image. Always false from the app. */
+  hasImage: boolean;
+  /** Changes when the image is replaced, to tell the browser it is a new one; null without an image. */
+  imageVersion: string | null;
   /** Who typed in a manual entry, and when; null for feedback sent from the app. */
   enteredBy: string | null;
   enteredAt: string | null;
@@ -85,6 +89,7 @@ type ManualRow = {
   received_on: string;
   app_version: string | null;
   platform: Platform | null;
+  image_path: string | null;
   created_at: string;
   created_by_label: string;
 };
@@ -102,7 +107,7 @@ type TriageRow = {
 const APP_COLUMNS =
   "id, created_at, category, message, app_version, platform, os_version, locale, screen, has_screenshot";
 const MANUAL_COLUMNS =
-  "id, source, category, message, received_on, app_version, platform, created_at, created_by_label";
+  "id, source, category, message, received_on, app_version, platform, image_path, created_at, created_by_label";
 const TRIAGE_COLUMNS = "kind, feedback_id, status, note, link, updated_at, updated_by_label";
 
 function withTriage(triage: TriageRow | undefined) {
@@ -130,6 +135,8 @@ function fromApp(row: AppRow, triage: TriageRow | undefined): Feedback {
     locale: row.locale,
     screen: row.screen,
     hasScreenshot: row.has_screenshot,
+    hasImage: false,
+    imageVersion: null,
     enteredBy: null,
     enteredAt: null,
     ...withTriage(triage),
@@ -151,6 +158,9 @@ function fromManual(row: ManualRow, triage: TriageRow | undefined): Feedback {
     locale: null,
     screen: null,
     hasScreenshot: false,
+    hasImage: row.image_path !== null,
+    // The object's random name, never the entry id again.
+    imageVersion: row.image_path?.split("/")[1]?.replace(/\.webp$/, "") ?? null,
     enteredBy: row.created_by_label,
     enteredAt: row.created_at,
     ...withTriage(triage),

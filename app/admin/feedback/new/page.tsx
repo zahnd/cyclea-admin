@@ -29,6 +29,7 @@ export default async function AddFeedbackPage() {
               receivedOn: todayInZurich(),
               appVersion: null,
               platform: null,
+              imageVersion: null,
             }}
           />
         </FramePanel>

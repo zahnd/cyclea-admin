@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { ImageIcon, TriangleAlertIcon } from "lucide-react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { FormMessage } from "@/components/form-message";
+import { Alert, AlertDescription } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +15,8 @@ import {
   FEEDBACK_CATEGORIES,
   FEEDBACK_CATEGORY_LABELS,
   FEEDBACK_SOURCE_LABELS,
+  IMAGE_ACCEPT,
+  IMAGE_MAX_BYTES,
   isFeedbackCategory,
   isManualSource,
   isPlatform,
@@ -41,11 +45,35 @@ export type ManualValues = {
   receivedOn: string;
   appVersion: string | null;
   platform: Platform | null;
+  /** The stored image's version (Feedback.imageVersion), or null. */
+  imageVersion: string | null;
 };
 
 /** Create (no id) or edit a manual entry. */
 export function ManualForm({ id, initial }: { id?: string; initial: ManualValues }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(saveManual, {});
+  // The image waits in state rather than in the file input, so a refused save
+  // keeps it like every other field; after a save it is the stored one.
+  // With a local preview URL, which is revoked whenever the file goes.
+  const [picked, setPickedState] = useState<{ file: File; url: string } | null>(null);
+  const pickedRef = useRef(picked);
+  const setPicked = (file: File | null) => {
+    if (pickedRef.current) URL.revokeObjectURL(pickedRef.current.url);
+    pickedRef.current = file ? { file, url: URL.createObjectURL(file) } : null;
+    setPickedState(pickedRef.current);
+  };
+  useEffect(() => () => {
+    if (pickedRef.current) URL.revokeObjectURL(pickedRef.current.url);
+  }, []);
+  const file = picked?.file ?? null;
+  const [removeImage, setRemoveImage] = useState(false);
+  const [state, action, pending] = useActionState<FormState, FormData>(async (previous, formData) => {
+    const result = await saveManual(previous, formData);
+    if (result.ok) {
+      setPicked(null);
+      setRemoveImage(false);
+    }
+    return result;
+  }, {});
   // Controlled, all of them: React resets a form after its action, and a
   // refused save must not wipe what was typed.
   const [source, setSource] = useState<ManualSource>(initial.source);
@@ -54,9 +82,43 @@ export function ManualForm({ id, initial }: { id?: string; initial: ManualValues
   const [receivedOn, setReceivedOn] = useState(initial.receivedOn);
   const [appVersion, setAppVersion] = useState(initial.appVersion ?? "");
   const [platform, setPlatform] = useState<Platform | "">(initial.platform ?? "");
+  const [imageError, setImageError] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
+
+  const storedImage = id && initial.imageVersion && !removeImage
+    ? `/admin/feedback/app/${id}/image?v=${initial.imageVersion}`
+    : null;
+  // The chosen file first: it is not uploaded until the form is saved.
+  const shown = picked?.url ?? storedImage;
+
+  function choose(chosen: File | undefined) {
+    if (picker.current) picker.current.value = "";
+    if (!chosen) return;
+    if (chosen.size > IMAGE_MAX_BYTES) {
+      setImageError(`That image is larger than ${IMAGE_MAX_BYTES / 1024 / 1024} MB.`);
+      return;
+    }
+    setImageError(null);
+    setPicked(chosen);
+  }
+
+  function dropImage() {
+    setImageError(null);
+    if (file) setPicked(null);
+    else setRemoveImage(true);
+  }
+
+  // Submitted by hand, so the form is not reset and the chosen image goes with it.
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    if (file) formData.set("image", file);
+    if (removeImage && !file) formData.set("remove_image", "1");
+    startTransition(() => action(formData));
+  }
 
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form onSubmit={submit} className="flex flex-col gap-5">
       {id && <input type="hidden" name="id" value={id} />}
       <input type="hidden" name="source" value={source} />
       <input type="hidden" name="category" value={category} />
@@ -169,6 +231,55 @@ export function ManualForm({ id, initial }: { id?: string; initial: ManualValues
             </SelectContent>
           </Select>
         </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="image">Image (optional)</Label>
+        <Alert variant="warning">
+          <TriangleAlertIcon />
+          <AlertDescription>
+            No personal or sensitive data in the image: no names, faces, phone numbers, profile pictures or chat
+            headers, and no cycle or health data. Crop or blur it before uploading. Location and camera details are
+            removed automatically; what the picture shows is not.
+          </AlertDescription>
+        </Alert>
+        {shown ? (
+          <div className="flex flex-wrap items-end gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a private image behind requireAdmin(), or a local preview; next/image would cache it */}
+            <img src={shown} alt="Image attached to this feedback" className="max-h-64 max-w-full rounded-md border object-contain" />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => picker.current?.click()}>
+                Replace
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={dropImage}>
+                Remove
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Button type="button" variant="outline" onClick={() => picker.current?.click()}>
+              <ImageIcon />
+              Choose image
+            </Button>
+          </div>
+        )}
+        <input
+          ref={picker}
+          id="image"
+          type="file"
+          accept={IMAGE_ACCEPT}
+          className="sr-only"
+          tabIndex={-1}
+          onChange={(event) => choose(event.target.files?.[0])}
+        />
+        {imageError ? (
+          <p className="text-xs text-destructive">{imageError}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            JPEG, PNG, WebP or GIF, up to {IMAGE_MAX_BYTES / 1024 / 1024} MB. One image per entry
+            {removeImage && !file ? "; the current one is removed when you save." : "."}
+          </p>
+        )}
       </div>
       <FormMessage state={state} />
       <div>

@@ -39,6 +39,7 @@ export type FeedbackRow = {
   appVersion: string | null;
   device: string | null;
   screen: string | null;
+  /** An app screenshot or a manual entry's image. */
   hasScreenshot: boolean;
   status: FeedbackStatus;
 };
@@ -183,14 +184,14 @@ export function FeedbackGrid({ rows, limit }: { rows: FeedbackRow[]; limit: numb
         header: () => (
           <>
             <ImageIcon className="size-4" aria-hidden />
-            <span className="sr-only">Screenshot</span>
+            <span className="sr-only">Screenshot or image</span>
           </>
         ),
         cell: ({ row }) =>
           row.original.hasScreenshot ? (
             <>
               <ImageIcon className="size-4 text-muted-foreground" aria-hidden />
-              <span className="sr-only">Has a screenshot</span>
+              <span className="sr-only">Has a screenshot or image</span>
             </>
           ) : null,
         size: 56,

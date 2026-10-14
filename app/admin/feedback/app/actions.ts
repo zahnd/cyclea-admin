@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/dal";
 import { isIsoDate, isUuid } from "@/lib/creators/validation";
 import { saveManualFeedback, setFeedbackTriage } from "@/lib/feedback/data";
+import { ImageRejected, removeManualImage, sanitizeImage, setManualImage } from "@/lib/feedback/image";
 import {
   APP_VERSION_MAX,
   isFeedbackCategory,
@@ -66,6 +67,11 @@ export async function updateTriage(_prev: FormState, formData: FormData): Promis
 /**
  * Creates (no id) or edits a manual entry: feedback that reached us outside
  * the app. A new entry opens its own page, where it can be triaged.
+ *
+ * An image (optional, one per entry, migration 0009) is checked and
+ * re-encoded BEFORE anything is saved, so a bad file refuses the whole save.
+ * It is stored after the entry, because its path carries the entry's id; if
+ * that step fails the entry stands without it, and the form says so.
  */
 export async function saveManual(_prev: FormState, formData: FormData): Promise<FormState> {
   const admin = await requireAdmin();
@@ -90,6 +96,19 @@ export async function saveManual(_prev: FormState, formData: FormData): Promise<
   if (platform && !isPlatform(platform)) return { error: "Choose a platform from the list." };
   const knownPlatform = platform && isPlatform(platform) ? platform : null;
 
+  const upload = formData.get("image");
+  const removeImage = formData.get("remove_image") === "1";
+  let image: Buffer | null = null;
+  if (upload instanceof File && upload.size > 0) {
+    try {
+      image = await sanitizeImage(upload);
+    } catch (error) {
+      if (error instanceof ImageRejected) return { error: error.message };
+      console.error(`[feedback] image for manual ${id ?? "(new)"} failed: ${message(error)}`);
+      return { error: "The image could not be processed. Nothing was saved." };
+    }
+  }
+
   let savedId: string;
   try {
     savedId = await saveManualFeedback(
@@ -101,9 +120,27 @@ export async function saveManual(_prev: FormState, formData: FormData): Promise<
     return { error: "Could not save. Nothing was changed." };
   }
 
+  const actor = { id: admin.userId, label: admin.email };
+  let imageFailed = false;
+  try {
+    if (image) await setManualImage(savedId, image, actor);
+    else if (removeImage && id) await removeManualImage(savedId, actor);
+  } catch (error) {
+    console.error(`[feedback] image of manual ${savedId} failed: ${message(error)}`);
+    imageFailed = true;
+  }
+
   revalidatePath("/admin/feedback/app");
   revalidatePath("/admin", "layout");
-  if (!id) redirect(`/admin/feedback/app/${savedId}`);
+  // The entry's page says when its image could not be stored.
+  if (!id) redirect(`/admin/feedback/app/${savedId}${imageFailed ? "?image=failed" : ""}`);
   revalidatePath(`/admin/feedback/app/${savedId}`);
+  if (imageFailed) {
+    return {
+      error: image
+        ? "The entry was saved, but the image could not be stored. Try adding it again."
+        : "The entry was saved, but the image could not be removed. Try again.",
+    };
+  }
   return { ok: "Saved." };
 }
