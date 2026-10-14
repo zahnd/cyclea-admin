@@ -99,12 +99,12 @@ The decision record for why this is a separate repo and a separate database is
   photo metadata never lands, shown only via a `requireAdmin()` route, with a
   no-personal-data notice on the form. The notice is the only safeguard
   against cycle data in a picture; accepted knowingly (2026-10-14), because
-  only the user adds manual entries. The `app_feedback` Edge Function loses
-  its Slack ping once this is live; `lib/feedback/` is what the MCP tools will
-  call. **The privacy policy needs one more change**, made with the Slack
-  removal: the Slack bullet and retention sentence, and that feedback reaching
-  us by WhatsApp, in person or email (with an image, if any) is kept in the
-  admin.
+  only the user adds manual entries. The `app_feedback` Edge Function no
+  longer pings Slack (cyclea-app `fdda920`, 2026-10-15); `lib/feedback/` is
+  what the MCP tools will call. The privacy policy (15 October 2026) covers
+  all of it: app feedback and manual feedback under Render, manual feedback
+  and its image under Communications, Slack for reports and content ratings
+  only.
 - **Next steps, in order** (each planned on its own): the admin's **MCP
   endpoint** (auth first, then feedback tools); **per-admin notification
   settings** (replacing the New badge as the signal); **content feedback** into
