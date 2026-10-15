@@ -415,6 +415,23 @@ accepting the client at once and ends its Supabase sessions.
 **When a client gets 401 after working before:** its 30 days ran out or it was
 revoked; authenticate again from the client.
 
+**Every authenticator code an admin enters disconnects their AI clients.**
+Supabase Auth, on any successful MFA verify, deletes every session of that
+account below aal2 (`InvalidateSessionsWithAALLessThan` in its
+`internal/api/mfa.go`), and the session an OAuth client gets from the code
+exchange is aal1. Both places this app verifies a code call
+`challengeAndVerify` — the 12-hour re-ask (`app/login/mfa/actions.ts`) and
+every step-up (`lib/auth/step-up.ts`: grant, revoke, reset authenticator,
+delete) — so after either, the client's next token refresh fails. *Sign out*
+does the same: `signOut()` defaults to `scope: 'global'`. The `mcp_grants` row
+stays active; only the Supabase session is gone, so the client just
+authenticates again (`/mcp` → *cyclea-admin* → Authenticate) and the consent
+page approves it. Not a bug and no setting changes it. In the Auth logs it
+looks like this (seen 2026-10-15, an hour after a 12-hour re-ask): bursts of
+`400 refresh_token_not_found` on `/oauth/token` — Claude Code retries 10-20
+times — each followed by `403 bad_jwt` ("token is expired") on `/user` from
+the endpoint.
+
 ## What is not set up yet
 
 - Admin sign-in, Creators and Users exist. Creator logins and `/portal` come
