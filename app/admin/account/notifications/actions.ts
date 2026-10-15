@@ -27,7 +27,15 @@ export async function updateNotificationSettings(_prev: FormState, formData: For
   try {
     changed = await saveSettings(admin.userId, settings, { id: admin.userId, label: admin.email });
   } catch (error) {
-    console.error(`[notifications] settings of ${admin.userId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    // set_notification_settings (0012): someone must hear about reports.
+    if (message.includes("user_report_needs_one_immediate")) {
+      return {
+        error:
+          "At least one admin must get user reports immediately — Apple requires reports to reach a person (guideline 1.2). Another admin has to switch theirs on first.",
+      };
+    }
+    console.error(`[notifications] settings of ${admin.userId} failed: ${message}`);
     return { error: "Could not save. Nothing was changed." };
   }
 

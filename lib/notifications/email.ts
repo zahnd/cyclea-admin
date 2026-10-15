@@ -7,9 +7,11 @@ import {
   type ContentKind,
   type FeedbackCategory,
 } from "@/lib/feedback/validation";
+import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/reports/validation";
 
 // The notification email. It says WHAT arrived and links to the admin; it
-// never carries what a user wrote -- no message, no note, no username. That
+// never carries what a user wrote -- no message, no note, no username (not
+// even the reported account's). That
 // stays behind sign-in and an authenticator. Content titles are editorial
 // text and may appear.
 //
@@ -23,13 +25,13 @@ export const ADMIN_URL = "https://admin.cyclea.app";
 const FROM = "Cyclea Admin <admin@cyclea.app>";
 
 export type NoticeItems = {
+  reports: { reason: ReportReason }[];
   appFeedback: { category: FeedbackCategory }[];
   contentNotes: { contentKind: ContentKind; directusId: number; title: string | null }[];
 };
 
-export function isEmpty(items: NoticeItems): boolean {
-  return items.appFeedback.length === 0 && items.contentNotes.length === 0;
-}
+/** `reminder`: reports still new 24 hours after they arrived (sent once). */
+export type NoticeVariant = "immediate" | "digest" | "reminder";
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
@@ -53,20 +55,28 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => HTML_ENTITIES[char]);
 }
 
-/** "1 bug, 2 ideas" -- categories only. */
-function categorySummary(items: NoticeItems["appFeedback"]): string {
-  const counts = new Map<FeedbackCategory, number>();
-  for (const item of items) counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
-  return [...counts.entries()].map(([category, n]) => `${n} ${FEEDBACK_CATEGORY_LABELS[category].toLowerCase()}`).join(", ");
+/** "1 bug, 2 ideas" -- labels and counts only. */
+function summary<T extends string>(values: T[], labels: Record<T, string>): string {
+  const counts = new Map<T, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts.entries()].map(([value, n]) => `${n} ${labels[value].toLowerCase()}`).join(", ");
 }
 
 type Section = { heading: string; lines: string[]; link: string };
 
-function sections(items: NoticeItems): Section[] {
+function sections(items: NoticeItems, variant: NoticeVariant): Section[] {
   const result: Section[] = [];
+  if (items.reports.length > 0) {
+    const what = variant === "reminder" ? plural(items.reports.length, "report", "reports") + " still new after 24 hours" : plural(items.reports.length, "new report", "new reports");
+    result.push({
+      heading: `${what} (${summary(items.reports.map((r) => r.reason), REPORT_REASON_LABELS)})`,
+      lines: [],
+      link: `${ADMIN_URL}/admin/reports`,
+    });
+  }
   if (items.appFeedback.length > 0) {
     result.push({
-      heading: `${plural(items.appFeedback.length, "new app feedback", "new app feedback")} (${categorySummary(items.appFeedback)})`,
+      heading: `${plural(items.appFeedback.length, "new app feedback", "new app feedback")} (${summary(items.appFeedback.map((f) => f.category), FEEDBACK_CATEGORY_LABELS)})`,
       lines: [],
       link: `${ADMIN_URL}/admin/feedback/app`,
     });
@@ -86,11 +96,18 @@ function sections(items: NoticeItems): Section[] {
 
 export type Notice = { subject: string; text: string; html: string };
 
-/** The email for one admin. `digest` only changes the wording. */
-export function buildNotice(items: NoticeItems, digest: boolean): Notice {
-  const parts = sections(items);
-  const subject = `Cyclea Admin: ${parts.map((part) => part.heading.replace(/ \(.*\)$/, "")).join(", ")}`;
-  const intro = digest ? "Since yesterday's summary:" : "New in the admin:";
+/** The email for one admin. */
+export function buildNotice(items: NoticeItems, variant: NoticeVariant): Notice {
+  const parts = sections(items, variant);
+  const subject =
+    (variant === "reminder" ? "Cyclea Admin reminder: " : "Cyclea Admin: ") +
+    parts.map((part) => part.heading.replace(/ \(.*\)$/, "")).join(", ");
+  const intro =
+    variant === "digest"
+      ? "Since yesterday's summary:"
+      : variant === "reminder"
+        ? "Not picked up yet:"
+        : "New in the admin:";
   const footer = [
     "What users wrote stays in the admin; this email only says what arrived.",
     `Change these emails: ${ADMIN_URL}/admin/account/notifications`,

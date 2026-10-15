@@ -52,6 +52,7 @@ function targetHref(row: AuditGridRow): string | null {
     return `/admin/feedback/app/${row.targetId}`;
   }
   if (row.targetType === "content_feedback") return `/admin/feedback/content/${row.targetId}`;
+  if (row.targetType === "user_report") return `/admin/reports/${row.targetId}`;
   return null;
 }
 

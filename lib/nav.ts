@@ -1,4 +1,5 @@
 import {
+  FlagIcon,
   ListIcon,
   MessageSquareIcon,
   PlusIcon,
@@ -79,6 +80,21 @@ export const sections: NavSection[] = [
         href: "/admin/feedback/new",
         icon: PlusIcon,
         match: under("/admin/feedback/new"),
+      },
+    ],
+  },
+  {
+    title: "Reports",
+    href: "/admin/reports",
+    icon: FlagIcon,
+    // Abuse reports from the app: moderation, not feedback.
+    pages: [
+      {
+        title: "All reports",
+        href: "/admin/reports",
+        icon: ListIcon,
+        // A report's own page belongs here too.
+        match: under("/admin/reports"),
       },
     ],
   },

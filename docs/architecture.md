@@ -36,7 +36,7 @@ Three credentials, and the second one is the whole design:
 | credential | env var | reaches |
 |---|---|---|
 | admin project secret key (role `service_role`) | `SUPABASE_SECRET_KEY` | payouts, rates, audit log, creator logins — no app data at all |
-| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | four views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin` — and writes to `public.creators`. Nothing else. |
+| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | five views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`, `user_reports_admin` — and writes to `public.creators`. Nothing else. |
 | app project service role | — | **never exists here.** Edge Functions only, and it never leaves Supabase. |
 
 `admin_portal` is a plain login role with hand-written grants. Postgres enforces
@@ -109,6 +109,18 @@ every title an item had, and "Open in Directus" opens the live item.
 `note_changed_at`, set by a trigger, is what reopens a triaged rating whose
 note changed; `updated_at` moves with sync stamps and re-tapped thumbs too.
 Only ratings with a note are triaged (`feedback_triage`, kind `content`, 0010).
+
+**`user_reports_admin` (0068)** is abuse reports for `/admin/reports`, and the
+one view that names an app user on purpose: moderation needs to know who was
+reported, so it carries the reported account's username and display name at
+report time and now, whether the account exists, and how many reports it has
+drawn. It never carries the reporter — not even a count — nor any user id,
+since every id keys the health tables. The reporter's `note` is free text and
+may name people. What we did lives here in `report_triage` (0012), audited
+without names; it is deleted 12 months after the report by a pg_cron job, the
+same window in which the app purges the report itself (0026), so our record
+never outlives what it describes. Acting on an account stays
+`make delete-user` in cyclea-app: this host holds no credential that could.
 
 Feedback that reaches us outside the app (WhatsApp, in person, email) is
 entered by an admin into **`manual_feedback`** (0008), in this project, and

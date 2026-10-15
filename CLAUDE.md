@@ -128,11 +128,20 @@ The decision record for why this is a separate repo and a separate database is
   (`POSTMARK_ADMIN_TOKEN`) -- it cannot read the app server's sent mail, but
   can send as any cyclea.app address. Setup: `docs/setup.md` §
   Notifications. The New badge stays.
-- **Next steps, in order** (each planned on its own): **user reports** into
-  the admin (triage kept here with a 12-month purge, notified through the
-  sweep, one 24 h reminder; Apple 1.2), then Slack removed entirely; the
-  admin's **MCP endpoint** (auth first, then feedback tools). Manual entries
-  about content wait until asked for.
+- **User reports in the admin** (2026-10-15, **built, not yet live**): the
+  top-bar section **Reports** (`/admin/reports`) reads the app view
+  `user_reports_admin` (cyclea-app 0068): the reported account's names then
+  and now and its report count — **never the reporter, no user ids**. What we
+  did is `report_triage` (0012): New / In progress / Closed, an action
+  (required to close; *Account deleted* records a `make delete-user`, this app
+  never deletes accounts), a note; audited without names, and purged 12 months
+  after the report like the app purges the report. Notified through the sweep
+  as kind `user_report`; at least one admin must stay on Immediately
+  (enforced), else everyone gets them; one reminder for a report still New
+  after 24 h. `report_user`'s Slack post goes once this is live — then Slack
+  is gone entirely.
+- **Next steps**: the admin's **MCP endpoint** (auth first, then feedback
+  tools). Manual entries about content wait until asked for.
   Still open besides: a revenue overview once production purchases exist, CI
   for lint/typecheck/build and the Docker migration tests, and payouts once
   `docs/payouts.md` is answered.
@@ -163,12 +172,14 @@ and this app runs on a public web host.
   Render's environment, or in anyone's `.env`. If a task seems to need one, the
   answer is a new view in the app project, not a wider credential.
 - The app project is reached **only** as the `admin_portal` Postgres role, whose
-  grants are `SELECT` on four views (`creator_revenue_events`,
-  `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`)
-  and `INSERT/UPDATE` on `public.creators`. Postgres enforces that; our code is
-  not what makes it safe. `app_feedback_admin.message` and
-  `content_feedback_admin.note` are user-typed free text and may mention health
-  details — accepted knowingly; never copy them into this project.
+  grants are `SELECT` on five views (`creator_revenue_events`,
+  `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`,
+  `user_reports_admin`) and `INSERT/UPDATE` on `public.creators`. Postgres
+  enforces that; our code is not what makes it safe.
+  `app_feedback_admin.message`, `content_feedback_admin.note` and
+  `user_reports_admin.note` are user-typed free text and may mention health
+  details or name people — accepted knowingly; never copy them into this
+  project, the audit log or an email.
 - **No `NEXT_PUBLIC_` variables at all.** The prefix ships a value to every
   visitor; every Supabase call here runs on the server, so nothing needs one —
   and for the app project it would be a breach.
