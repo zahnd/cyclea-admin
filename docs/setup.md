@@ -401,7 +401,11 @@ claude mcp add --transport http --callback-port 33418 --client-id e5ac8f42-9bfe-
   cyclea-admin https://admin.cyclea.app/mcp
 ```
 
-then `/mcp` in Claude Code → Authenticate. The browser opens the consent page
+then `/mcp` in Claude Code → Authenticate. **Every admin uses this same
+client** with the same command: approvals are per admin and client, each with
+its own 30 days, its own Revoke and its own audit trail. Register another
+client only for a different callback address (a claude.ai connector, or a port
+that is taken) — or add that address to this client's redirect URIs. The browser opens the consent page
 (sign in and authenticator if needed), shows the client's name and the host it
 returns to (`localhost` for Claude Code), and approval lasts 30 days.
 

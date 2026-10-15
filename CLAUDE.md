@@ -141,7 +141,8 @@ The decision record for why this is a separate repo and a separate database is
   (enforced), else everyone gets them; one reminder for a report still New
   after 24 h. **Slack is gone** (cyclea-app `cce85e9`): no function posts
   there and its secrets are unset.
-- **MCP endpoint** (2026-10-15, **built, not yet live**; migration 0013):
+- **MCP endpoint** (**live** 2026-10-15, tested with Claude Code: consent,
+  approval record, `list_feedback`; log lines carry no content; migration 0013):
   `https://admin.cyclea.app/mcp` lets an AI client (Claude Code, claude.ai)
   read feedback and set its status, note and link **as the admin who
   approved it**. This project's Supabase Auth is the OAuth 2.1 server
@@ -152,8 +153,11 @@ The decision record for why this is a separate repo and a separate database is
   reports, screenshots, images or who sent anything; the server instructions
   tell agents to **paraphrase, never quote or copy user text** out of the
   admin. Writes are audited as "<admin> via MCP (<client>)". Approvals and
-  Revoke: *AI clients* in the account menu. **The privacy policy names
-  Anthropic before this goes live.**
+  Revoke: *AI clients* in the account menu. The privacy policy names Anthropic
+  (published 2026-10-15). One OAuth client, *Claude Code*
+  (`e5ac8f42-…`, public, callback `localhost:33418`), serves every admin —
+  approvals are per admin; a new client only for a different callback (e.g. a
+  claude.ai connector).
 - **Next steps**: none planned. Manual entries about content wait until asked
   for.
   Still open besides: a revenue overview once production purchases exist, CI
