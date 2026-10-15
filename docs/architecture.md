@@ -243,3 +243,26 @@ application role — not merely that the code does not issue them.
 - **`REVOKE ... FROM PUBLIC` alone is not enough.** Name `anon` and
   `authenticated` explicitly; see the app repo's migration 0030 for the incident
   that taught this.
+
+## The MCP endpoint
+
+`/mcp` (lib/mcp, migration 0013) gives an AI client the same feedback an
+admin sees, as that admin, and nothing more: it is a delegated session, not a
+new credential with its own reach. Tokens come from this project's Supabase
+Auth acting as an OAuth 2.1 server, with clients registered by hand (no
+dynamic registration, so no stranger can create one); an admin approves each client on
+`/oauth/consent` with a fresh authenticator code, and that approval is
+recorded in `mcp_grants` for 30 days. `verifyMcpToken` accepts a token only
+when Supabase confirms it (`getUser`), it carries a `client_id`, its user is
+an admin, and the approval is active — Supabase's own grant lives until
+revoked and its `aal` claim says nothing about the authenticator, so neither
+is trusted alone. Before showing the consent page, Supabase's remembered
+consent is withdrawn for every client without an active approval, so a
+re-approval always passes through our page.
+
+The tools read through `lib/feedback` and write only triage
+(`set_feedback_triage`), audited as "<admin> via MCP (<client>)". They never
+return reports, screenshots, images or anything identifying who sent
+feedback. What users wrote does reach the AI provider; the privacy policy says
+so, and the server instructions require paraphrasing — no quotes in issues,
+commits or other systems.

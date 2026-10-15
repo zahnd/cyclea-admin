@@ -396,13 +396,17 @@ enabled = false
 # Obtain from https://clerk.com/setup/supabase
 # domain = "example.clerk.accounts.dev"
 
-# OAuth server configuration
+# OAuth server: this project is the authorization server for the admin's MCP
+# endpoint (https://admin.cyclea.app/mcp). The consent page is ours, under
+# site_url; it demands a fresh authenticator code and records each approval
+# in mcp_grants (migration 0013), which the endpoint checks. docs/setup.md § MCP.
 [auth.oauth_server]
-# Enable OAuth server functionality
-enabled = false
-# Path for OAuth consent flow UI
+enabled = true
 authorization_url_path = "/oauth/consent"
-# Allow dynamic client registration
+# OFF, deliberately (2026-10-15): with it on, anyone could register a client
+# with any name and redirect address, and a phishing link would rest on the
+# consent page alone. Clients are created by hand (dashboard -> OAuth Apps)
+# with fixed redirect URIs; Claude Code is told its id with --client-id.
 allow_dynamic_registration = false
 
 [edge_runtime]

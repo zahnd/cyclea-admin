@@ -373,6 +373,44 @@ A 200 answers with counts (`admins`, `items`, `emails`, `failures`), or
 `{"skipped":"locked"}` while a previous sweep still runs. 401 is a secret
 mismatch between Vault and Render; 503 means `NOTIFY_SWEEP_SECRET` is unset.
 
+## MCP endpoint (migration 0013)
+
+**OAuth server** (admin project): `[auth.oauth_server]` in
+`supabase/config.toml` — enabled, consent at `/oauth/consent` (relative to
+`site_url`), **dynamic client registration off**: otherwise anyone could
+register a client with any name and redirect address, and a phishing link
+would rest on the consent page alone. Push it with `supabase config push`
+(which needs the Postmark SMTP variables, see § Auth settings), or set the
+same in the dashboard: Authentication → OAuth Server. Check:
+`curl https://mtcnwjpjbupsbkbhqbph.supabase.co/.well-known/oauth-authorization-server/auth/v1`
+returns JSON.
+
+**Registering a client** (by hand, once per kind of client): dashboard →
+Authentication → OAuth Apps → new client. For Claude Code: name `Claude Code`,
+**public** (no secret; PKCE protects the flow), redirect URI
+`http://localhost:33418/callback` (any fixed port; the same in the command
+below). Registered 2026-10-15 through the admin API
+(`auth.admin.oauth.createClient`): **client id
+`e5ac8f42-9bfe-43ff-aa25-b9b093a593d7`** — not a secret, a public client has
+none.
+
+**Connecting Claude Code:**
+
+```bash
+claude mcp add --transport http --callback-port 33418 --client-id e5ac8f42-9bfe-43ff-aa25-b9b093a593d7 \
+  cyclea-admin https://admin.cyclea.app/mcp
+```
+
+then `/mcp` in Claude Code → Authenticate. The browser opens the consent page
+(sign in and authenticator if needed), shows the client's name and the host it
+returns to (`localhost` for Claude Code), and approval lasts 30 days.
+
+**Revoking:** account menu → *AI clients* → Revoke. That stops the endpoint
+accepting the client at once and ends its Supabase sessions.
+
+**When a client gets 401 after working before:** its 30 days ran out or it was
+revoked; authenticate again from the client.
+
 ## What is not set up yet
 
 - Admin sign-in, Creators and Users exist. Creator logins and `/portal` come

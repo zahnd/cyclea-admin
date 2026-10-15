@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth/dal";
+import { clearParkedAuthorization, parkedConsentPath } from "@/lib/auth/oauth-return";
 import { adminDbAsUser } from "@/lib/db/admin-as-user";
 
 export type MfaState =
@@ -81,5 +82,11 @@ async function verify(prev: MfaState, formData: FormData): Promise<MfaState> {
     return { ...prev, error: "That code did not work. Codes change every 30 seconds — try the current one." };
   }
 
+  // An AI client's consent page sent the admin here; continue there.
+  const consent = await parkedConsentPath();
+  if (consent) {
+    await clearParkedAuthorization();
+    redirect(consent);
+  }
   redirect("/admin");
 }

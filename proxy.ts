@@ -21,5 +21,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/portal/:path*", "/login/:path*"],
+  // /oauth: the consent page for AI clients needs the refreshed session too.
+  matcher: ["/admin/:path*", "/portal/:path*", "/login/:path*", "/oauth/:path*"],
 };

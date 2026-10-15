@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getClaims, hasFreshTotp, requireAdmin } from "@/lib/auth/dal";
+import { parkedConsentPath } from "@/lib/auth/oauth-return";
 import { adminDbAsUser } from "@/lib/db/admin-as-user";
 
 import type { MfaState } from "./actions";
@@ -10,7 +11,8 @@ export default async function MfaPage() {
   const admin = await requireAdmin({ allowStaleTotp: true });
 
   const claims = await getClaims();
-  if (claims && hasFreshTotp(claims)) redirect("/admin");
+  // Already fresh: back to a parked AI-client consent, if any (cleared on approve or decline).
+  if (claims && hasFreshTotp(claims)) redirect((await parkedConsentPath()) ?? "/admin");
 
   const supabase = await adminDbAsUser();
   const { data } = await supabase.auth.mfa.listFactors();

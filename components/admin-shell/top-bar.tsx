@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, LogOutIcon, UserIcon } from "lucide-react";
+import { BellIcon, BotIcon, LogOutIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
@@ -82,6 +82,10 @@ export function TopBar({ email, sectionCounts }: { email: string; sectionCounts:
               <DropdownMenuItem render={<Link href="/admin/account/notifications" />}>
                 <BellIcon />
                 Notification settings
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/admin/account/ai-clients" />}>
+                <BotIcon />
+                AI clients
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={signingOut}
