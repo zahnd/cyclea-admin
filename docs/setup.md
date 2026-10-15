@@ -335,6 +335,44 @@ Environment variables are the four above. Render is a **named subprocessor** in
 the privacy policy even holding no data at rest, because it processes it in
 transit.
 
+## Notifications (migration 0011)
+
+Each admin chooses per kind -- Immediately, Daily at 08:00 Zürich, Off -- on
+*Notification settings* (account menu). A pg_cron job in this project calls
+`POST https://admin.cyclea.app/api/notifications/sweep` every 5 minutes with a
+bearer secret from Vault; the endpoint reads the app views, emails what each
+admin has not been told yet, and records it in `notification_deliveries` (ids
+and times only, purged after 90 days). Emails never contain user text.
+
+Setup, once:
+
+1. **Postmark**: a separate server, *Cyclea Admin*, so the token on Render
+   cannot read the app server's sent mail (reset and confirmation links) or
+   edit its templates, and can be revoked without touching app mail. It can
+   still send as any `cyclea.app` address -- domains are account-wide -- so a
+   leak is answered by revoking it. Copy its **Server API token**.
+2. **Secret**: `openssl rand -hex 32`.
+3. **Render** → Cyclea Admin → Environment: `POSTMARK_ADMIN_TOKEN` and
+   `NOTIFY_SWEEP_SECRET` (the secret from step 2). Saving redeploys.
+4. **Vault**, admin project SQL editor, the same secret:
+   `select vault.create_secret('<secret>', 'notify_sweep_secret');`
+   Until it exists the job runs but calls nothing. To rotate:
+   `select vault.update_secret((select id from vault.secrets where name = 'notify_sweep_secret'), '<new>');`
+   and change the Render variable at the same time.
+
+Checking it runs:
+
+```sql
+SELECT status, return_message, start_time FROM cron.job_run_details
+WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'notify-sweep')
+ORDER BY start_time DESC LIMIT 5;
+SELECT status_code, content, created FROM net._http_response ORDER BY created DESC LIMIT 5;
+```
+
+A 200 answers with counts (`admins`, `items`, `emails`, `failures`), or
+`{"skipped":"locked"}` while a previous sweep still runs. 401 is a secret
+mismatch between Vault and Render; 503 means `NOTIFY_SWEEP_SECRET` is unset.
+
 ## What is not set up yet
 
 - Admin sign-in, Creators and Users exist. Creator logins and `/portal` come

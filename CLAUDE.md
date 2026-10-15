@@ -118,11 +118,21 @@ The decision record for why this is a separate repo and a separate database is
   and count as New; a changed note reopens a triaged one, a flipped thumb does
   not. "Open in Directus" links to the live item. The Directus mirror stays;
   the sync function no longer posts to Slack (cyclea-app `a582b0b`).
-- **Next steps, in order** (each planned on its own): the admin's **MCP
-  endpoint** (auth first, then feedback tools); **per-admin notification
-  settings** (replacing the New badge as the signal); **user reports** into
-  the admin with a notification (Apple 1.2), then Slack removed entirely.
-  Manual entries about content wait until asked for.
+- **Email notifications** (2026-10-15, **built, not yet live**; migration
+  0011): each admin picks Immediately / Daily 08:00 Zürich / Off per kind on
+  *Notification settings* (account menu). pg_cron calls
+  `/api/notifications/sweep` every 5 minutes (bearer secret in Vault and
+  `NOTIFY_SWEEP_SECRET`); each item reaches each admin once
+  (`notification_deliveries`, ids and times only). Emails never contain user
+  text. Sent through the separate Postmark server *Cyclea Admin*
+  (`POSTMARK_ADMIN_TOKEN`) -- it cannot read the app server's sent mail, but
+  can send as any cyclea.app address. Setup: `docs/setup.md` §
+  Notifications. The New badge stays.
+- **Next steps, in order** (each planned on its own): **user reports** into
+  the admin (triage kept here with a 12-month purge, notified through the
+  sweep, one 24 h reminder; Apple 1.2), then Slack removed entirely; the
+  admin's **MCP endpoint** (auth first, then feedback tools). Manual entries
+  about content wait until asked for.
   Still open besides: a revenue overview once production purchases exist, CI
   for lint/typecheck/build and the Docker migration tests, and payouts once
   `docs/payouts.md` is answered.
