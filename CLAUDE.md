@@ -118,7 +118,7 @@ The decision record for why this is a separate repo and a separate database is
   and count as New; a changed note reopens a triaged one, a flipped thumb does
   not. "Open in Directus" links to the live item. The Directus mirror stays;
   the sync function no longer posts to Slack (cyclea-app `a582b0b`).
-- **Email notifications** (2026-10-15, **built, not yet live**; migration
+- **Email notifications** (**live** 2026-10-15, tested; migration
   0011): each admin picks Immediately / Daily 08:00 Zürich / Off per kind on
   *Notification settings* (account menu). pg_cron calls
   `/api/notifications/sweep` every 5 minutes (bearer secret in Vault and
@@ -128,7 +128,8 @@ The decision record for why this is a separate repo and a separate database is
   (`POSTMARK_ADMIN_TOKEN`) -- it cannot read the app server's sent mail, but
   can send as any cyclea.app address. Setup: `docs/setup.md` §
   Notifications. The New badge stays.
-- **User reports in the admin** (2026-10-15, **built, not yet live**): the
+- **User reports in the admin** (**live** 2026-10-15, tested with two
+  TestFlight reports; `admin_portal` reads them and is refused the table): the
   top-bar section **Reports** (`/admin/reports`) reads the app view
   `user_reports_admin` (cyclea-app 0068): the reported account's names then
   and now and its report count — **never the reporter, no user ids**. What we
@@ -138,8 +139,8 @@ The decision record for why this is a separate repo and a separate database is
   after the report like the app purges the report. Notified through the sweep
   as kind `user_report`; at least one admin must stay on Immediately
   (enforced), else everyone gets them; one reminder for a report still New
-  after 24 h. `report_user`'s Slack post goes once this is live — then Slack
-  is gone entirely.
+  after 24 h. **Slack is gone** (cyclea-app `cce85e9`): no function posts
+  there and its secrets are unset.
 - **Next steps**: the admin's **MCP endpoint** (auth first, then feedback
   tools). Manual entries about content wait until asked for.
   Still open besides: a revenue overview once production purchases exist, CI
