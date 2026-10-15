@@ -168,7 +168,11 @@ export function FeedbackGrid({ rows, limit }: { rows: FeedbackRow[]; limit: numb
         accessorKey: "device",
         id: "device",
         header: "Device",
-        cell: ({ row }) => <span className="whitespace-nowrap text-muted-foreground">{row.original.device ?? "—"}</span>,
+        cell: ({ row }) => (
+          <span className="block truncate text-muted-foreground" title={row.original.device ?? undefined}>
+            {row.original.device ?? "—"}
+          </span>
+        ),
         size: 140,
       },
       {

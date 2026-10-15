@@ -48,10 +48,19 @@ export function isPlatform(value: string): value is Platform {
   return (PLATFORMS as readonly string[]).includes(value);
 }
 
-/** "iOS 18.1" -- the platform's label where it is a known one, plus the OS version if any. */
-export function deviceLabel(platform: string | null, osVersion: string | null): string | null {
+/**
+ * "iOS 26.6" -- the platform's label where it is a known one, plus the OS
+ * version if any. iOS reports it as "Version 26.6 (Build 23G71)"; `short`
+ * keeps only the version number, for a list column.
+ */
+export function deviceLabel(
+  platform: string | null,
+  osVersion: string | null,
+  { short = false }: { short?: boolean } = {},
+): string | null {
   const name = platform && isPlatform(platform.toLowerCase()) ? PLATFORM_LABELS[platform.toLowerCase() as Platform] : platform;
-  return [name, osVersion].filter(Boolean).join(" ") || null;
+  const version = short && osVersion ? (osVersion.match(/\d+(?:\.\d+)*/)?.[0] ?? osVersion) : osVersion;
+  return [name, version].filter(Boolean).join(" ") || null;
 }
 
 /** Triage states (migration 0008). No triage row means "new". */
