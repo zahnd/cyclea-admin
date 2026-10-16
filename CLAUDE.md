@@ -161,7 +161,11 @@ The decision record for why this is a separate repo and a separate database is
 - **Image prep** (`/image-prep`, 2026-10-16): a **public** page, no
   sign-in, that shrinks photos for Directus in the browser (longest side
   2000/3000/4000, JPEG quality 70/80/90, metadata stripped). Directus Cloud
-  refuses to transform images over 6000 px, and 23 library files were.
+  refuses to transform images over 6000 px; the 23 library files that were
+  are all replaced (same ids, 2026-10-16). Directus Cloud has no upload
+  limit setting (no `FILES_MAX_UPLOAD_SIZE` in its dashboard, despite the
+  handover), so a new oversized upload is only caught by checking the
+  library (Directus MCP, width or height > 6000).
   Prerendered, no server side -- **keep it that way**
   (`docs/architecture.md` § *The image prep page*). Not linked from the
   admin. `hooks/use-file-upload.ts` (ReUI) has one local fix: a duplicate
