@@ -266,3 +266,23 @@ return reports, screenshots, images or anything identifying who sent
 feedback. What users wrote does reach the AI provider; the privacy policy says
 so, and the server instructions require paraphrasing — no quotes in issues,
 commits or other systems.
+
+## The image prep page (public)
+
+`/image-prep` is the one page here without sign-in: editors shrink photos
+before uploading them to Directus, without an admin account. Directus Cloud
+refuses to transform an image with a side over 6000 px
+(`ILLEGAL_ASSET_TRANSFORMATION`), the app always asks for a transformed
+copy, and Cloud offers no way to resize on upload — no extensions, no Flow
+that can, the limit itself Enterprise-only.
+
+It is public only because it has **no server side**: the page is prerendered
+(`force-static`), the proxy does not run on it, and the images are decoded,
+resized and re-encoded in the visitor's browser (`lib/image-prep.ts`) and
+saved from there — nothing is uploaded. What stays is a public page on the
+admin's host, a crafted image decoded by the visitor's own browser, and
+Render's usual request log. **Never add a server action, route handler,
+database or Directus call to this route**; anything that needs one belongs
+under `/admin` behind `requireAdmin()`. Every copy is re-encoded, even when
+that makes a small one slightly bigger, so none keeps its EXIF location or
+camera data. Not linked from the admin, by decision (2026-10-16).

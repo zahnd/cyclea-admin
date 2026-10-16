@@ -158,6 +158,14 @@ The decision record for why this is a separate repo and a separate database is
   (`e5ac8f42-…`, public, callback `localhost:33418`), serves every admin —
   approvals are per admin; a new client only for a different callback (e.g. a
   claude.ai connector).
+- **Image prep** (`/image-prep`, 2026-10-16): a **public** page, no
+  sign-in, that shrinks photos for Directus in the browser (longest side
+  2000/3000/4000, JPEG quality 70/80/90, metadata stripped). Directus Cloud
+  refuses to transform images over 6000 px, and 23 library files were.
+  Prerendered, no server side -- **keep it that way**
+  (`docs/architecture.md` § *The image prep page*). Not linked from the
+  admin. `hooks/use-file-upload.ts` (ReUI) has one local fix: a duplicate
+  no longer drops the files after it.
 - **Next steps**: none planned. Manual entries about content wait until asked
   for.
   Still open besides: a revenue overview once production purchases exist, CI
