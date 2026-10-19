@@ -226,8 +226,12 @@ first, or re-run the policy statement afterwards.
 The views added since are granted by their own migrations in the app repo,
 each skipped with a notice where the role does not exist yet:
 `creator_referral_counts` (0059), `app_feedback_admin` (0066),
-`content_feedback_admin` (0067) and `user_reports_admin` (0068). On a fresh
-database, re-run those `GRANT SELECT` statements after creating the role.
+`content_feedback_admin` (0067), `user_reports_admin` (0068), and for the
+support inbox `support_threads_admin` and `support_messages_admin` plus
+`EXECUTE` on the functions `support_team_reply(uuid, text, text)` and
+`support_set_status(uuid, text)` (0069) — the role's only write path into
+app data besides `creators`, and never a grant on the support tables. On a
+fresh database, re-run those `GRANT` statements after creating the role.
 
 Keep that list exactly this short. When something new is needed, add **a view in
 the app project** and grant that, rather than widening the role to a base table.
@@ -372,6 +376,39 @@ SELECT status_code, content, created FROM net._http_response ORDER BY created DE
 A 200 answers with counts (`admins`, `items`, `emails`, `failures`), or
 `{"skipped":"locked"}` while a previous sweep still runs. 401 is a secret
 mismatch between Vault and Render; 503 means `NOTIFY_SWEEP_SECRET` is unset.
+
+The kinds are user reports, support messages (0014), app feedback and content
+notes. Support counts a thread waiting for us (status `open`) as news at the
+time of the user's last message, so a follow-up notifies again, and sends one
+reminder 24 hours after it to admins on Immediately. Like every kind, the
+email says how many and links to `/admin/support` — never the message or the
+username.
+
+## Support inbox (migration 0014, cyclea-app 0069)
+
+`/admin/support` reads the app views `support_threads_admin` and
+`support_messages_admin` and writes through `support_team_reply` /
+`support_set_status`, all granted to `admin_portal` by cyclea-app 0069. To
+go live, in this order:
+
+1. **App project**: cyclea-app 0069 applied (`supabase db push` there), and
+   its grants present — the DO block skips them with a notice if
+   `admin_portal` is missing. Check as postgres:
+   `SELECT has_table_privilege('admin_portal', 'public.support_threads_admin', 'SELECT'), has_function_privilege('admin_portal', 'public.support_team_reply(uuid, text, text)', 'EXECUTE'), has_table_privilege('admin_portal', 'public.support_messages', 'SELECT');`
+   → `t / t / f`.
+2. **Admin project**: `supabase db push` for 0014 (`admins.support_name`,
+   `set_admin_support_name`, the `support` notification kind), then its
+   VERIFY block.
+3. **Deploy** on Render (push to `main`). Before 0069 is live the Support
+   page and its badge fail (the badge quietly, the page with an error), so
+   deploy after step 1.
+4. **Each admin** sets a first name on *Profile* (account menu); replies are
+   signed "<name> · Cyclea team" and the reply form stays locked until then.
+
+The audit log gets `support.reply`, `support.close` and `support.reopen` with
+the thread id only, and `admin.support_name` with the old and new name (an
+admin's, not a user's). **Not exposed through `/mcp`**, by decision: AI
+clients never read support conversations.
 
 ## MCP endpoint (migration 0013)
 

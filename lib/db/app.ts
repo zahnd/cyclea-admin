@@ -6,11 +6,14 @@ import path from "node:path";
 import { Pool } from "pg";
 
 // The Cyclea APP project, as the `admin_portal` Postgres role. Postgres -- not
-// this code -- limits it to SELECT on five views (creator_revenue_events,
+// this code -- limits it to SELECT on seven views (creator_revenue_events,
 // creator_referral_counts, app_feedback_admin, content_feedback_admin,
-// user_reports_admin) and SELECT, INSERT,
+// user_reports_admin, support_threads_admin, support_messages_admin),
+// EXECUTE on two functions (support_team_reply, support_set_status -- a
+// support reply and a thread's status, cyclea-app 0069) and SELECT, INSERT,
 // UPDATE(name, active, note) on creators (docs/architecture.md § The
-// credential boundary). Not "read-only": it creates and edits creators.
+// credential boundary). Not "read-only": it creates and edits creators and
+// posts support replies.
 //
 // Session-mode pooler (port 5432), so a small pool: every connection held here
 // is a server connection held there.

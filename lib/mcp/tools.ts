@@ -21,7 +21,8 @@ import {
 import { principalOf, type McpPrincipal } from "./auth";
 
 // The admin's MCP tools: feedback only (app, manual, content) -- never
-// reports, never screenshots or images, never who sent anything. Reads go
+// reports, never support conversations (lib/support stays out of here, by
+// decision), never screenshots or images, never who sent anything. Reads go
 // through lib/feedback, writes through set_feedback_triage, audited as the
 // admin "via MCP (<client>)". Each call leaves one log line without content.
 

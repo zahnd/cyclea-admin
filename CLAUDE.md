@@ -150,9 +150,9 @@ The decision record for why this is a separate repo and a separate database is
   `/oauth/consent` needs a fresh authenticator code and records the approval
   in `mcp_grants` for **30 days** — the endpoint refuses any token without an
   active row (`lib/mcp/auth.ts`), whatever Supabase's own grant says. Never
-  reports, screenshots, images or who sent anything; the server instructions
-  tell agents to **paraphrase, never quote or copy user text** out of the
-  admin. Writes are audited as "<admin> via MCP (<client>)". Approvals and
+  reports, support conversations, screenshots, images or who sent anything;
+  the server instructions tell agents to **paraphrase, never quote or copy
+  user text** out of the admin. Writes are audited as "<admin> via MCP (<client>)". Approvals and
   Revoke: *AI clients* in the account menu. The privacy policy names Anthropic
   (published 2026-10-15). One OAuth client, *Claude Code*
   (`e5ac8f42-…`, public, callback `localhost:33418`), serves every admin —
@@ -170,6 +170,21 @@ The decision record for why this is a separate repo and a separate database is
   (`docs/architecture.md` § *The image prep page*). Not linked from the
   admin. `hooks/use-file-upload.ts` (ReUI) has one local fix: a duplicate
   no longer drops the files after it.
+- **Support inbox** (built 2026-10-17, **not live**: waits for cyclea-app
+  migration 0069 and admin migration 0014): top-bar section **Support**
+  (`/admin/support`) reads the app views `support_threads_admin` (username,
+  display name, device, app version, language, entitled, counts — no user id,
+  no email) and `support_messages_admin`; default filter *Waiting for us*,
+  longest waiting first; transcript rows from the AI chat are marked *Before
+  handoff (AI chat)*. Replies and Close/Reopen go through the app functions
+  `support_team_reply` / `support_set_status` (granted to `admin_portal`), are
+  signed with the admin's first name (`admins.support_name`, 0014, set on
+  *Profile* in the account menu; replying is blocked until it is), and are
+  audited as `support.reply` / `support.close` / `support.reopen` with the
+  thread id only. Notified through the sweep as kind `support`: a waiting
+  thread is news at each user message, one reminder 24 h after the user's
+  last message. **Not exposed through `/mcp`.** Unit tests: `npm test`
+  (Node's runner, pure modules only).
 - **Next steps**: none planned. Manual entries about content wait until asked
   for.
   Still open besides: a revenue overview once production purchases exist, CI
@@ -185,6 +200,7 @@ npm run dev                          # Next.js dev server
 npm run build                        # production build
 npm run lint
 npm run typecheck                    # next typegen && tsc --noEmit
+npm test                             # node --test lib/**/*.test.ts (pure modules, no database)
 npm run admin -- grant <email>       # make an admin (needs SUPABASE_SECRET_KEY)
 npm run admin -- reset-mfa <email>   # lost authenticator
 supabase link --project-ref mtcnwjpjbupsbkbhqbph   # the ADMIN project
@@ -202,14 +218,18 @@ and this app runs on a public web host.
   Render's environment, or in anyone's `.env`. If a task seems to need one, the
   answer is a new view in the app project, not a wider credential.
 - The app project is reached **only** as the `admin_portal` Postgres role, whose
-  grants are `SELECT` on five views (`creator_revenue_events`,
+  grants are `SELECT` on seven views (`creator_revenue_events`,
   `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`,
-  `user_reports_admin`) and `INSERT/UPDATE` on `public.creators`. Postgres
-  enforces that; our code is not what makes it safe.
-  `app_feedback_admin.message`, `content_feedback_admin.note` and
-  `user_reports_admin.note` are user-typed free text and may mention health
-  details or name people — accepted knowingly; never copy them into this
-  project, the audit log or an email.
+  `user_reports_admin`, `support_threads_admin`, `support_messages_admin`),
+  `EXECUTE` on two functions (`support_team_reply`, `support_set_status`)
+  and `INSERT/UPDATE` on `public.creators`. Postgres enforces that; our code
+  is not what makes it safe.
+  `app_feedback_admin.message`, `content_feedback_admin.note`,
+  `user_reports_admin.note` and `support_messages_admin.body` are user-typed
+  free text and may mention health details or name people — accepted
+  knowingly; **never copy them into this project, the audit log or an
+  email**, nor a support user's username (audit entries carry the thread id,
+  emails a count and a link).
 - **No `NEXT_PUBLIC_` variables at all.** The prefix ships a value to every
   visitor; every Supabase call here runs on the server, so nothing needs one —
   and for the app project it would be a breach.

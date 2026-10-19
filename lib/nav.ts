@@ -1,5 +1,7 @@
 import {
   FlagIcon,
+  InboxIcon,
+  LifeBuoyIcon,
   ListIcon,
   MessageSquareIcon,
   PlusIcon,
@@ -95,6 +97,21 @@ export const sections: NavSection[] = [
         icon: ListIcon,
         // A report's own page belongs here too.
         match: under("/admin/reports"),
+      },
+    ],
+  },
+  {
+    title: "Support",
+    href: "/admin/support",
+    icon: LifeBuoyIcon,
+    // Conversations users started with the team in the app.
+    pages: [
+      {
+        title: "Inbox",
+        href: "/admin/support",
+        icon: InboxIcon,
+        // A conversation's own page belongs here too.
+        match: under("/admin/support"),
       },
     ],
   },

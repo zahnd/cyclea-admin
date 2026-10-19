@@ -6,10 +6,11 @@ import type { ContentKind, FeedbackCategory } from "@/lib/feedback/validation";
 import type { ReportReason } from "@/lib/reports/validation";
 
 import { buildNotice, sendNotice, type NoticeItems, type NoticeVariant } from "./email";
+import { deliveryKey as key, selectForAdmin, type SweepItem } from "./select";
 import { allSettings } from "./settings";
 import type { NotificationKind, NotificationSettings } from "./validation";
 
-// The 5-minute sweep (migrations 0011, 0012): called by pg_cron through
+// The 5-minute sweep (migrations 0011, 0012, 0014): called by pg_cron through
 // /api/notifications/sweep. It finds what each admin has not been told about
 // yet, sends at most one email per admin and kind of email (now, the daily
 // digest, a report reminder), and records what it sent -- so a sweep that
@@ -19,31 +20,30 @@ import type { NotificationKind, NotificationSettings } from "./validation";
 // Immediately for reports (the settings refuse it, but a revoked admin can
 // leave it so), every admin gets them. A report still new 24 hours after it
 // arrived gets ONE reminder to the same people.
+//
+// Support (0014): a thread waiting for us (status open) is news at the time
+// of the user's last message, so a follow-up notifies again; still waiting 24
+// hours after that, ONE reminder to the admins who get support immediately.
+// Only counts reach the email -- never the message or who wrote it.
 
 /** How far back a sweep looks; never further than the feature's launch. */
 const LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
-const REMINDER_AFTER_MS = 24 * 60 * 60 * 1000;
 const DIGEST_HOUR = 8;
 const DIGEST_ZONE = "Europe/Zurich";
 
-type Item = {
-  kind: NotificationKind;
-  id: string;
-  /** created_at, or for a content note the time it last changed. ISO. */
-  version: string;
-} & (
-  | { kind: "user_report"; reason: ReportReason }
-  | { kind: "app_feedback"; category: FeedbackCategory }
-  | { kind: "content_feedback"; contentKind: ContentKind; directusId: number; title: string | null }
-);
+type Item = SweepItem &
+  (
+    | { kind: "user_report"; reason: ReportReason }
+    | { kind: "support" }
+    | { kind: "app_feedback"; category: FeedbackCategory }
+    | { kind: "content_feedback"; contentKind: ContentKind; directusId: number; title: string | null }
+  );
 
 type DeliveryRow = { admin_id: string; kind: NotificationKind; item_id: string; item_version: string; mode: string };
 
 export type SweepResult =
   | { skipped: "locked" }
   | { admins: number; items: number; emails: number; failures: number };
-
-const key = (kind: string, id: string, version: string) => `${kind}:${id}:${Date.parse(version)}`;
 
 /** Today's 08:00 in Zürich, as an instant. */
 export function digestTimeToday(now: Date): Date {
@@ -60,9 +60,15 @@ export function digestTimeToday(now: Date): Date {
 
 async function newItems(since: Date): Promise<Item[]> {
   const app = appDbAsAdminPortal();
-  const [reports, feedback, notes] = await Promise.all([
+  const [reports, support, feedback, notes] = await Promise.all([
     app.query<{ id: string; created_at: Date; reason: ReportReason }>(
       "SELECT id, created_at, reason FROM public.user_reports_admin WHERE created_at > $1",
+      [since],
+    ),
+    // Threads waiting for us whose user wrote since: a follow-up is news too.
+    app.query<{ id: string; last_user_message_at: Date }>(
+      `SELECT id, last_user_message_at FROM public.support_threads_admin
+       WHERE status = 'open' AND last_user_message_at > $1`,
       [since],
     ),
     app.query<{ id: string; created_at: Date; category: FeedbackCategory }>(
@@ -83,6 +89,11 @@ async function newItems(since: Date): Promise<Item[]> {
       id: row.id,
       version: row.created_at.toISOString(),
       reason: row.reason,
+    })),
+    ...support.rows.map((row) => ({
+      kind: "support" as const,
+      id: row.id,
+      version: row.last_user_message_at.toISOString(),
     })),
     ...feedback.rows.map((row) => ({
       kind: "app_feedback" as const,
@@ -122,9 +133,10 @@ async function adminEmails(): Promise<{ id: string; email: string }[]> {
 }
 
 function toNotice(items: Item[]): NoticeItems {
-  const notice: NoticeItems = { reports: [], appFeedback: [], contentNotes: [] };
+  const notice: NoticeItems = { reports: [], support: 0, appFeedback: [], contentNotes: [] };
   for (const item of items) {
     if (item.kind === "user_report") notice.reports.push({ reason: item.reason });
+    else if (item.kind === "support") notice.support += 1;
     else if (item.kind === "app_feedback") notice.appFeedback.push({ category: item.category });
     else notice.contentNotes.push({ contentKind: item.contentKind, directusId: item.directusId, title: item.title });
   }
@@ -205,33 +217,28 @@ export async function runSweep(now: Date = new Date()): Promise<SweepResult> {
     for (const admin of admins) {
       const modes: NotificationSettings = { ...settings.get(admin.id)! };
       if (nobodyOnReports) modes.user_report = "immediate";
-      const known = told.get(admin.id) ?? new Set<string>();
-      const untold = items.filter((item) => !known.has(key(item.kind, item.id, item.version)));
+      const selection = selectForAdmin({
+        items,
+        modes,
+        told: told.get(admin.id) ?? new Set<string>(),
+        reminded: reminded.get(admin.id) ?? new Set<string>(),
+        pickedUpReports: pickedUp,
+        now: now.getTime(),
+      });
 
       // Each admin on their own: one failing address must not hold up the rest.
       // A failed send is not recorded, so the next sweep tries again.
       try {
-        const immediate = untold.filter((item) => modes[item.kind] === "immediate");
-        if (immediate.length > 0) {
-          await deliver(admin, immediate, "immediate");
+        if (selection.immediate.length > 0) {
+          await deliver(admin, selection.immediate, "immediate");
           emails += 1;
         }
 
-        // Reports still new a day after they arrived: one reminder, to those
-        // who get reports immediately.
-        if (modes.user_report === "immediate") {
-          const alreadyReminded = reminded.get(admin.id) ?? new Set<string>();
-          const overdue = items.filter(
-            (item) =>
-              item.kind === "user_report" &&
-              now.getTime() - Date.parse(item.version) >= REMINDER_AFTER_MS &&
-              !pickedUp.has(item.id) &&
-              !alreadyReminded.has(key(item.kind, item.id, item.version)),
-          );
-          if (overdue.length > 0) {
-            await deliver(admin, overdue, "reminder");
-            emails += 1;
-          }
+        // Reports still new, support threads still waiting, a day on: one
+        // reminder, to those who get that kind immediately.
+        if (selection.reminders.length > 0) {
+          await deliver(admin, selection.reminders, "reminder");
+          emails += 1;
         }
 
         // The digest is due once a day, from 08:00 Zürich on. Due but empty:
@@ -239,9 +246,8 @@ export async function runSweep(now: Date = new Date()): Promise<SweepResult> {
         const wantsDigest = Object.values(modes).includes("daily");
         const last = lastDigest.get(admin.id) ?? launchedAt;
         if (wantsDigest && now.getTime() >= digestAt && last < digestAt) {
-          const daily = untold.filter((item) => modes[item.kind] === "daily");
-          if (daily.length > 0) {
-            await deliver(admin, daily, "digest");
+          if (selection.daily.length > 0) {
+            await deliver(admin, selection.daily, "digest");
             emails += 1;
           } else {
             await record(admin.id, [], "daily", true);

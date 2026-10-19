@@ -36,7 +36,7 @@ Three credentials, and the second one is the whole design:
 | credential | env var | reaches |
 |---|---|---|
 | admin project secret key (role `service_role`) | `SUPABASE_SECRET_KEY` | payouts, rates, audit log, creator logins — no app data at all |
-| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | five views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`, `user_reports_admin` — and writes to `public.creators`. Nothing else. |
+| `admin_portal` Postgres role, **app** project | `CYCLEA_APP_DATABASE_URL` | seven views — `creator_revenue_events`, `creator_referral_counts`, `app_feedback_admin`, `content_feedback_admin`, `user_reports_admin`, `support_threads_admin`, `support_messages_admin` — two functions — `support_team_reply`, `support_set_status` — and writes to `public.creators`. Nothing else. |
 | app project service role | — | **never exists here.** Edge Functions only, and it never leaves Supabase. |
 
 `admin_portal` is a plain login role with hand-written grants. Postgres enforces
@@ -62,7 +62,8 @@ Two consequences that are easy to violate by accident:
 
 ## The app-side read surface
 
-Three views in the app project, each granted to `admin_portal` alone. The
+Seven views in the app project, each granted to `admin_portal` alone, plus
+two functions for the support inbox (below). The
 first, `public.creator_revenue_events` (migration 0056), carries three rules
 that code here must respect:
 
@@ -121,6 +122,31 @@ without names; it is deleted 12 months after the report by a pg_cron job, the
 same window in which the app purges the report itself (0026), so our record
 never outlives what it describes. Acting on an account stays
 `make delete-user` in cyclea-app: this host holds no credential that could.
+
+**`support_threads_admin` and `support_messages_admin` (0069)** are the
+support inbox, `/admin/support`: conversations a user started with the team
+in the app (cyclea-app `docs/support.md`). The thread view names who wrote —
+username and display name — with platform, app version, language and whether
+the user is entitled; never a user id or an email address, because a reply
+needs no address: it lands in the app, and the app emails the user a note
+without the text. The messages view carries the bodies, **free text the user
+typed** (and, for a conversation handed over from the AI chat, the transcript
+rows, `from_transcript`), accepted on the same terms as feedback messages.
+
+The inbox is the one place this host **writes user-facing text into the app
+project**, and it does so only through two `SECURITY DEFINER` functions
+granted to `admin_portal` — never a grant on the tables:
+`support_team_reply(thread, body, team_name)` (a team message; the thread
+becomes *answered*) and `support_set_status(thread, 'open' | 'closed')`. The
+functions raise `thread_closed` / `invalid` / `open_thread_exists`, which the
+actions map to a message (`supportRaised`, `lib/support/validation.ts`).
+Replies are signed with the admin's first name, `admins.support_name` in this
+project (0014), set on *Profile*; replying is blocked until it is set. Here we
+keep only the audit entries `support.reply` / `support.close` /
+`support.reopen` with the thread id — **never the message text, never the
+user's names**: audit rows are permanent, threads go with the account or 12
+months after closing. The notification email (kind `support`, 0014) carries a
+count and a link, nothing a user wrote.
 
 Feedback that reaches us outside the app (WhatsApp, in person, email) is
 entered by an admin into **`manual_feedback`** (0008), in this project, and
@@ -262,7 +288,8 @@ re-approval always passes through our page.
 
 The tools read through `lib/feedback` and write only triage
 (`set_feedback_triage`), audited as "<admin> via MCP (<client>)". They never
-return reports, screenshots, images or anything identifying who sent
+return reports, **support conversations** (`lib/support` is deliberately not
+wired into `/mcp`), screenshots, images or anything identifying who sent
 feedback. What users wrote does reach the AI provider; the privacy policy says
 so, and the server instructions require paraphrasing — no quotes in issues,
 commits or other systems.

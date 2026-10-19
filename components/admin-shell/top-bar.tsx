@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, BotIcon, LogOutIcon, UserIcon } from "lucide-react";
+import { BellIcon, BotIcon, IdCardIcon, LogOutIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition } from "react";
@@ -79,6 +79,10 @@ export function TopBar({ email, sectionCounts }: { email: string; sectionCounts:
                 <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+              <DropdownMenuItem render={<Link href="/admin/account/profile" />}>
+                <IdCardIcon />
+                Profile
+              </DropdownMenuItem>
               <DropdownMenuItem render={<Link href="/admin/account/notifications" />}>
                 <BellIcon />
                 Notification settings

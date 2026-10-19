@@ -11,7 +11,8 @@ import { REPORT_REASON_LABELS, type ReportReason } from "@/lib/reports/validatio
 
 // The notification email. It says WHAT arrived and links to the admin; it
 // never carries what a user wrote -- no message, no note, no username (not
-// even the reported account's). That
+// even the reported account's), and for support only how many conversations
+// wait, never what they say or who started them. That
 // stays behind sign-in and an authenticator. Content titles are editorial
 // text and may appear.
 //
@@ -26,11 +27,16 @@ const FROM = "Cyclea Admin <admin@cyclea.app>";
 
 export type NoticeItems = {
   reports: { reason: ReportReason }[];
+  /** Support threads with news (or overdue, in a reminder): a count, nothing else. */
+  support: number;
   appFeedback: { category: FeedbackCategory }[];
   contentNotes: { contentKind: ContentKind; directusId: number; title: string | null }[];
 };
 
-/** `reminder`: reports still new 24 hours after they arrived (sent once). */
+/**
+ * `reminder`: reports still new 24 hours after they arrived, support threads
+ * still waiting 24 hours after the user's last message (each sent once).
+ */
 export type NoticeVariant = "immediate" | "digest" | "reminder";
 
 function plural(count: number, one: string, many: string): string {
@@ -72,6 +78,16 @@ function sections(items: NoticeItems, variant: NoticeVariant): Section[] {
       heading: `${what} (${summary(items.reports.map((r) => r.reason), REPORT_REASON_LABELS)})`,
       lines: [],
       link: `${ADMIN_URL}/admin/reports`,
+    });
+  }
+  if (items.support > 0) {
+    result.push({
+      heading:
+        variant === "reminder"
+          ? `${plural(items.support, "support conversation", "support conversations")} still waiting after 24 hours`
+          : `${plural(items.support, "support conversation", "support conversations")} waiting for a reply`,
+      lines: [],
+      link: `${ADMIN_URL}/admin/support`,
     });
   }
   if (items.appFeedback.length > 0) {
