@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { isUuid } from "@/lib/creators/validation";
 import { getContentFeedback } from "@/lib/feedback/content";
 import { setFeedbackTriage } from "@/lib/feedback/data";
-import { isFeedbackKind, isFeedbackStatus, isHttpsUrl, LINK_MAX, NOTE_MAX } from "@/lib/feedback/validation";
+import { isFeedbackKind, isFeedbackStatus, isFixedInVersion, isHttpsUrl, LINK_MAX, NOTE_MAX } from "@/lib/feedback/validation";
 
 export type FormState = { error?: string; ok?: string };
 
@@ -15,7 +15,7 @@ function message(error: unknown): string {
 }
 
 /**
- * Status, note and link of one item, of any kind. No step-up code: this is
+ * Status, note, link and fixed-in version of one item, of any kind. No step-up code: this is
  * not a role or account action, and requireAdmin() already demands an
  * authenticator check from the last 12 hours.
  */
@@ -30,12 +30,14 @@ export async function updateTriage(_prev: FormState, formData: FormData): Promis
   const status = String(formData.get("status") ?? "");
   const note = String(formData.get("note") ?? "").trim();
   const link = String(formData.get("link") ?? "").trim();
+  const fixedIn = String(formData.get("fixed_in") ?? "").trim();
 
   if (!isFeedbackStatus(status)) return { error: "Choose a status from the list." };
   if (note.length > NOTE_MAX) return { error: `Keep the note under ${NOTE_MAX} characters.` };
   if (link && !isHttpsUrl(link)) {
     return { error: `The link must start with https:// and be at most ${LINK_MAX} characters.` };
   }
+  if (fixedIn && !isFixedInVersion(fixedIn)) return { error: "Write the version as 1.2.0 or 1.2.0+33." };
 
   // A bare thumb is not triaged. The user may have removed their note since
   // the page was loaded.
@@ -53,7 +55,7 @@ export async function updateTriage(_prev: FormState, formData: FormData): Promis
 
   let changed: boolean;
   try {
-    changed = await setFeedbackTriage({ kind, feedbackId: id, status, note, link }, { id: admin.userId, label: admin.email });
+    changed = await setFeedbackTriage({ kind, feedbackId: id, status, note, link, fixedIn }, { id: admin.userId, label: admin.email });
   } catch (error) {
     console.error(`[feedback] triage ${kind} ${id} failed: ${message(error)}`);
     return { error: "Could not save. Nothing was changed." };

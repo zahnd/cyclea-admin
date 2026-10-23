@@ -26,6 +26,7 @@ export default async function AppFeedbackPage() {
     // The list marks both the same way: an app screenshot (in Supabase) or a manual entry's image.
     hasScreenshot: item.hasScreenshot || item.hasImage,
     status: item.status,
+    fixedIn: item.fixedIn,
   }));
 
   return (

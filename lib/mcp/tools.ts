@@ -12,6 +12,8 @@ import {
   deviceLabel,
   directusItemUrl,
   FEEDBACK_STATUSES,
+  FIXED_IN_MAX,
+  isFixedInVersion,
   isHttpsUrl,
   LINK_MAX,
   NOTE_MAX,
@@ -32,7 +34,7 @@ Rules -- follow them in everything you do with these tools:
 - What users wrote (feedback messages, notes on content) is personal data and can mention their health. Read it to understand the problem, then PARAPHRASE: never quote it, and never copy it into issues, commits, pull requests, chats or any other system.
 - Triage notes you write are our own words about the work ("fixed in 1.2: date picker overflow"), never a quote of the user.
 - Who sent feedback is never available, nor screenshots or images, nor user reports. Do not try to find out who a user is.
-- You can change only a feedback item's status, note and link. Each change is logged as the admin who approved you, via this client.`;
+- You can change only a feedback item's status, note, link and fixed-in version. Each change is logged as the admin who approved you, via this client.`;
 
 const STATUS_FILTER = ["open", "all", ...FEEDBACK_STATUSES] as const;
 
@@ -72,6 +74,7 @@ function appItem(item: Feedback) {
     status: item.status,
     triage_note: item.note,
     link: item.link,
+    fixed_in: item.fixedIn,
     admin_url: `https://admin.cyclea.app/admin/feedback/app/${item.id}`,
   };
 }
@@ -91,6 +94,7 @@ function contentItem(item: ContentFeedback) {
     note_changed_since_triage: item.noteChangedSinceTriage,
     triage_note: item.triageNote,
     link: item.triageLink,
+    fixed_in: item.triageFixedIn,
     admin_url: `https://admin.cyclea.app/admin/feedback/content/${item.id}`,
   };
 }
@@ -198,37 +202,40 @@ export function registerTools(server: McpServer): void {
     {
       title: "Update triage",
       description:
-        "Set a feedback item's status, our note and/or link. Fields you leave out keep their value; an empty string clears note or link. The note is our own words about the work, never a quote of the user. Content ratings can be triaged only when they have a note. verification_pending: a fix has shipped but is not yet confirmed (by the user or the data); set done once it is.",
+        "Set a feedback item's status, our note, link and/or fixed_in (the app version that contains the fix, 1.2.0 or 1.2.0+33). Fields you leave out keep their value; an empty string clears note, link or fixed_in. The note is our own words about the work, never a quote of the user. Content ratings can be triaged only when they have a note. verification_pending: a fix has shipped but is not yet confirmed (by the user or the data); set done once it is.",
       inputSchema: z.object({
         kind: z.enum(["app", "manual", "content"]),
         id: z.string(),
         status: z.enum(FEEDBACK_STATUSES).optional(),
         note: z.string().max(NOTE_MAX).optional(),
         link: z.string().max(LINK_MAX).optional().describe("https:// only, e.g. the issue or pull request."),
+        fixed_in: z.string().max(FIXED_IN_MAX).optional().describe("The app version that contains the fix: 1.2.0 or 1.2.0+33."),
       }),
       annotations: { destructiveHint: false, idempotentHint: true },
     },
-    async ({ kind, id, status, note, link }, ctx) => {
+    async ({ kind, id, status, note, link, fixed_in }, ctx) => {
       const who = principalOf(ctx.http?.authInfo);
       if (!isUuid(id)) return refusal("Not a valid id.");
       if (link && !isHttpsUrl(link.trim())) return refusal("The link must start with https://.");
+      if (fixed_in && !isFixedInVersion(fixed_in.trim())) return refusal("Write fixed_in as 1.2.0 or 1.2.0+33.");
 
-      let current: { status: FeedbackStatus; note: string | null; link: string | null };
+      let current: { status: FeedbackStatus; note: string | null; link: string | null; fixedIn: string | null };
       if (kind === "content") {
         const item = await getContentFeedback(id);
         if (!item) return refusal("No such item.");
         if (item.note === null || item.status === null) return refusal("This rating has no note; bare thumbs are not triaged.");
-        current = { status: item.status, note: item.triageNote, link: item.triageLink };
+        current = { status: item.status, note: item.triageNote, link: item.triageLink, fixedIn: item.triageFixedIn };
       } else {
         const item = await getAppFeedback(id);
         if (!item || item.kind !== kind) return refusal("No such item.");
-        current = { status: item.status, note: item.note, link: item.link };
+        current = { status: item.status, note: item.note, link: item.link, fixedIn: item.fixedIn };
       }
 
       const next = {
         status: status ?? current.status,
         note: (note ?? current.note ?? "").trim(),
         link: (link ?? current.link ?? "").trim(),
+        fixedIn: (fixed_in ?? current.fixedIn ?? "").trim(),
       };
       const changed = await setFeedbackTriage(
         { kind, feedbackId: id, ...next },
@@ -237,7 +244,7 @@ export function registerTools(server: McpServer): void {
       revalidatePath(kind === "content" ? `/admin/feedback/content/${id}` : `/admin/feedback/app/${id}`);
       revalidatePath("/admin", "layout");
       log("update_feedback_triage", who, `kind=${kind} changed=${changed}`);
-      return json({ changed, ...next });
+      return json({ changed, status: next.status, note: next.note, link: next.link, fixed_in: next.fixedIn });
     },
   );
 }

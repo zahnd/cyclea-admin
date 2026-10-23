@@ -37,6 +37,7 @@ export type ContentFeedback = {
   noteChangedSinceTriage: boolean;
   triageNote: string | null;
   triageLink: string | null;
+  triageFixedIn: string | null;
   triagedAt: string | null;
   triagedBy: string | null;
 };
@@ -59,13 +60,14 @@ type TriageRow = {
   status: FeedbackStatus;
   note: string | null;
   link: string | null;
+  fixed_in: string | null;
   updated_at: string;
   updated_by_label: string;
 };
 
 const CONTENT_COLUMNS =
   "id, content_kind, directus_id, rating, note, content_title, note_changed_at, created_at, updated_at";
-const TRIAGE_COLUMNS = "feedback_id, status, note, link, updated_at, updated_by_label";
+const TRIAGE_COLUMNS = "feedback_id, status, note, link, fixed_in, updated_at, updated_by_label";
 
 function fromRow(row: ContentRow, triage: TriageRow | undefined): ContentFeedback {
   const noteChangedAt = row.note_changed_at?.toISOString() ?? null;
@@ -93,6 +95,7 @@ function fromRow(row: ContentRow, triage: TriageRow | undefined): ContentFeedbac
     noteChangedSinceTriage,
     triageNote: triage?.note ?? null,
     triageLink: triage?.link ?? null,
+    triageFixedIn: triage?.fixed_in ?? null,
     triagedAt: triage?.updated_at ?? null,
     triagedBy: triage?.updated_by_label ?? null,
   };

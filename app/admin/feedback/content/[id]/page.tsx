@@ -118,6 +118,7 @@ export default async function ContentRatingPage({ params }: PageProps<"/admin/fe
               status={item.status}
               note={item.triageNote}
               link={item.triageLink}
+              fixedIn={item.triageFixedIn}
             />
           </FramePanel>
         )}

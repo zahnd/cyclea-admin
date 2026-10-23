@@ -42,6 +42,8 @@ export type FeedbackRow = {
   /** An app screenshot or a manual entry's image. */
   hasScreenshot: boolean;
   status: FeedbackStatus;
+  /** The app version that contains the fix. */
+  fixedIn: string | null;
 };
 
 const STATUS_BADGE_VARIANTS = {
@@ -106,7 +108,7 @@ export function FeedbackGrid({ rows, limit }: { rows: FeedbackRow[]; limit: numb
       if (category !== ALL && row.category !== category) return false;
       if (source !== ALL && row.source !== source) return false;
       if (!q) return true;
-      return [row.message, row.appVersion, row.device, row.screen].join(" ").toLowerCase().includes(q);
+      return [row.message, row.appVersion, row.fixedIn, row.device, row.screen].join(" ").toLowerCase().includes(q);
     });
   }, [rows, search, status, category, source]);
 
@@ -163,6 +165,13 @@ export function FeedbackGrid({ rows, limit }: { rows: FeedbackRow[]; limit: numb
         id: "appVersion",
         header: "Version",
         cell: ({ row }) => <span className="whitespace-nowrap text-muted-foreground">{row.original.appVersion ?? "—"}</span>,
+        size: 110,
+      },
+      {
+        accessorKey: "fixedIn",
+        id: "fixedIn",
+        header: "Fixed in",
+        cell: ({ row }) => <span className="whitespace-nowrap text-muted-foreground">{row.original.fixedIn ?? "—"}</span>,
         size: 110,
       },
       {

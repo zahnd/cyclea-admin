@@ -126,7 +126,14 @@ export default async function FeedbackItemPage({ params, searchParams }: PagePro
           </FrameDescription>
         </FrameHeader>
         <FramePanel>
-          <TriageForm kind={item.kind} id={item.id} status={item.status} note={item.note} link={item.link} />
+          <TriageForm
+            kind={item.kind}
+            id={item.id}
+            status={item.status}
+            note={item.note}
+            link={item.link}
+            fixedIn={item.fixedIn}
+          />
         </FramePanel>
       </Frame>
 

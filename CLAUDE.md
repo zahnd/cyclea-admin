@@ -93,9 +93,10 @@ The decision record for why this is a separate repo and a separate database is
   path), and **manual entries** for feedback that came via WhatsApp, in person
   or email (`manual_feedback`, 0008 — the channel only, never who). Triage per
   item (New / In progress / Verification pending / Done / Won't fix, note,
-  link) is `feedback_triage` (0008, keyed by kind + id, audited, never an app
-  user's message; *Verification pending*, 0015, is a shipped fix we could not
-  test ourselves, and counts as open). A New
+  link, *Fixed in* version `1.2.0` or `1.2.0+33`) is `feedback_triage` (0008,
+  keyed by kind + id, audited, never an app user's message; *Verification
+  pending*, 0015, is a shipped fix we could not test ourselves, and counts as
+  open; *Fixed in*, 0016, is logged from/to). A New
   count sits on the Feedback section. App screenshots open in the Supabase
   dashboard only. A manual entry can carry one image (0009, applied and
   verified 2026-10-14): private bucket `manual-feedback` here, re-encoded to WebP so

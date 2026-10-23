@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   FEEDBACK_STATUS_LABELS,
   FEEDBACK_STATUSES,
+  FIXED_IN_MAX,
   isFeedbackStatus,
   LINK_MAX,
   NOTE_MAX,
@@ -28,12 +29,14 @@ export function TriageForm({
   status: savedStatus,
   note: savedNote,
   link: savedLink,
+  fixedIn: savedFixedIn,
 }: {
   kind: FeedbackKind;
   id: string;
   status: FeedbackStatus;
   note: string | null;
   link: string | null;
+  fixedIn: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateTriage, {});
   // Controlled, all of them: React resets a form after its action, and a
@@ -41,6 +44,7 @@ export function TriageForm({
   const [status, setStatus] = useState<FeedbackStatus>(savedStatus);
   const [note, setNote] = useState(savedNote ?? "");
   const [link, setLink] = useState(savedLink ?? "");
+  const [fixedIn, setFixedIn] = useState(savedFixedIn ?? "");
   return (
     <form action={action} className="flex flex-col gap-5">
       <input type="hidden" name="kind" value={kind} />
@@ -66,6 +70,21 @@ export function TriageForm({
             </SelectGroup>
           </SelectContent>
         </Select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="fixed_in">Fixed in</Label>
+        <Input
+          id="fixed_in"
+          name="fixed_in"
+          className="w-48"
+          value={fixedIn}
+          onChange={(event) => setFixedIn(event.target.value)}
+          maxLength={FIXED_IN_MAX}
+          placeholder="1.2.0+33"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        <p className="text-xs text-muted-foreground">The app version that contains the fix; the build number is optional.</p>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="note">Note</Label>

@@ -63,6 +63,8 @@ export type Feedback = {
   status: FeedbackStatus;
   note: string | null;
   link: string | null;
+  /** The app version that contains the fix (0016). */
+  fixedIn: string | null;
   /** When and by whom it was last triaged; null while it has never been. */
   triagedAt: string | null;
   triagedBy: string | null;
@@ -100,6 +102,7 @@ type TriageRow = {
   status: FeedbackStatus;
   note: string | null;
   link: string | null;
+  fixed_in: string | null;
   updated_at: string;
   updated_by_label: string;
 };
@@ -108,13 +111,14 @@ const APP_COLUMNS =
   "id, created_at, category, message, app_version, platform, os_version, locale, screen, has_screenshot";
 const MANUAL_COLUMNS =
   "id, source, category, message, received_on, app_version, platform, image_path, created_at, created_by_label";
-const TRIAGE_COLUMNS = "kind, feedback_id, status, note, link, updated_at, updated_by_label";
+const TRIAGE_COLUMNS = "kind, feedback_id, status, note, link, fixed_in, updated_at, updated_by_label";
 
 function withTriage(triage: TriageRow | undefined) {
   return {
     status: triage?.status ?? ("new" as const),
     note: triage?.note ?? null,
     link: triage?.link ?? null,
+    fixedIn: triage?.fixed_in ?? null,
     triagedAt: triage?.updated_at ?? null,
     triagedBy: triage?.updated_by_label ?? null,
   };
@@ -282,11 +286,12 @@ export type TriageInput = {
   status: FeedbackStatus;
   note: string;
   link: string;
+  fixedIn: string;
 };
 
 /**
- * Saves status, note and link and writes the audit entry, in one transaction
- * (set_feedback_triage, migration 0008). Returns whether anything changed.
+ * Saves status, note, link and fixed-in version and writes the audit entry,
+ * in one transaction (set_feedback_triage, migrations 0008, 0016). Returns whether anything changed.
  * Callers validate first; the database refuses what slips through.
  */
 export async function setFeedbackTriage(input: TriageInput, actor: FeedbackActor): Promise<boolean> {
@@ -296,6 +301,7 @@ export async function setFeedbackTriage(input: TriageInput, actor: FeedbackActor
     p_status: input.status,
     p_note: input.note,
     p_link: input.link,
+    p_fixed_in: input.fixedIn,
     p_actor_id: actor.id,
     p_actor_label: actor.label,
   });

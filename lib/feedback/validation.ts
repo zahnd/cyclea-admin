@@ -111,6 +111,16 @@ export const APP_VERSION_MAX = 64;
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 
+/**
+ * The app version that contains a fix (feedback_triage_fixed_in_check,
+ * migration 0016): "1.2.0" or "1.2.0+33", the format the app reports.
+ */
+export const FIXED_IN_MAX = 64;
+
+export function isFixedInVersion(value: string): boolean {
+  return value.length <= FIXED_IN_MAX && /^\d+\.\d+\.\d+(\+\d+)?$/.test(value);
+}
+
 export function isHttpsUrl(value: string): boolean {
   return value.length <= LINK_MAX && /^https:\/\/\S+$/.test(value);
 }
