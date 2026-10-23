@@ -63,13 +63,18 @@ export function deviceLabel(
   return [name, version].filter(Boolean).join(" ") || null;
 }
 
-/** Triage states (migration 0008). No triage row means "new". */
-export const FEEDBACK_STATUSES = ["new", "in_progress", "done", "wont_fix"] as const;
+/**
+ * Triage states (migrations 0008, 0015). No triage row means "new".
+ * "verification_pending": a fix shipped that we could not test ourselves,
+ * waiting for the user or the data to confirm it.
+ */
+export const FEEDBACK_STATUSES = ["new", "in_progress", "verification_pending", "done", "wont_fix"] as const;
 export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
 
 export const FEEDBACK_STATUS_LABELS: Record<FeedbackStatus, string> = {
   new: "New",
   in_progress: "In progress",
+  verification_pending: "Verification pending",
   done: "Done",
   wont_fix: "Won't fix",
 };

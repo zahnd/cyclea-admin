@@ -89,7 +89,7 @@ const KIND_ITEMS = [
 function matchesStatus(status: FeedbackStatus | null, filter: string): boolean {
   if (filter === ALL) return true;
   if (filter === NONE) return status === null;
-  if (filter === OPEN) return status === "new" || status === "in_progress";
+  if (filter === OPEN) return status === "new" || status === "in_progress" || status === "verification_pending";
   return status === filter;
 }
 

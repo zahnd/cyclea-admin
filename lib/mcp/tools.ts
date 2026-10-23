@@ -50,7 +50,7 @@ function refusal(text: string) {
 
 function matchesStatus(status: FeedbackStatus | null, filter: (typeof STATUS_FILTER)[number]): boolean {
   if (filter === "all") return true;
-  if (filter === "open") return status === "new" || status === "in_progress";
+  if (filter === "open") return status === "new" || status === "in_progress" || status === "verification_pending";
   return status === filter;
 }
 
@@ -101,7 +101,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "List feedback",
       description:
-        "Feedback about the app, newest first: what users sent from the app, entries an admin made for feedback that came by WhatsApp, email or in person, and ratings (thumbs and notes) on articles and classes. Defaults to open items (new or in progress). Content ratings without a note have status null and are never triaged.",
+        "Feedback about the app, newest first: what users sent from the app, entries an admin made for feedback that came by WhatsApp, email or in person, and ratings (thumbs and notes) on articles and classes. Defaults to open items (new, in progress or verification pending). Content ratings without a note have status null and are never triaged.",
       inputSchema: z.object({
         kind: z.enum(["all", "app", "content"]).default("all").describe("app = app feedback and manual entries; content = ratings of articles, classes, recipes …"),
         status: z.enum(STATUS_FILTER).default("open"),
@@ -198,7 +198,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Update triage",
       description:
-        "Set a feedback item's status, our note and/or link. Fields you leave out keep their value; an empty string clears note or link. The note is our own words about the work, never a quote of the user. Content ratings can be triaged only when they have a note.",
+        "Set a feedback item's status, our note and/or link. Fields you leave out keep their value; an empty string clears note or link. The note is our own words about the work, never a quote of the user. Content ratings can be triaged only when they have a note. verification_pending: a fix has shipped but is not yet confirmed (by the user or the data); set done once it is.",
       inputSchema: z.object({
         kind: z.enum(["app", "manual", "content"]),
         id: z.string(),

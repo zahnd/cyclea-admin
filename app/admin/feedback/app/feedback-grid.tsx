@@ -47,6 +47,7 @@ export type FeedbackRow = {
 const STATUS_BADGE_VARIANTS = {
   new: "info-outline",
   in_progress: "warning-outline",
+  verification_pending: "primary-outline",
   done: "success-outline",
   wont_fix: "secondary",
 } as const;
@@ -85,7 +86,7 @@ const SOURCE_ITEMS = [
 
 function matchesStatus(status: FeedbackStatus, filter: string): boolean {
   if (filter === ALL) return true;
-  if (filter === OPEN) return status === "new" || status === "in_progress";
+  if (filter === OPEN) return status === "new" || status === "in_progress" || status === "verification_pending";
   return status === filter;
 }
 
